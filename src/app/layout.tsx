@@ -1,19 +1,21 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Space_Mono, Geist } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
-
-const spaceMono = Space_Mono({
-  variable: "--font-mono",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
-  weight: ["400", "700"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Survai — Decentralized Intelligence",
-  description: "Capture the tacit knowledge your organization runs on but has never written down.",
+  title: "Survai — AI-Native Survey Builder",
+  description: "Build surveys with AI. Describe your survey in plain English and get professional, shareable surveys in seconds.",
 };
 
 export default function RootLayout({
@@ -22,9 +24,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("dark", "font-sans", geist.variable)}>
-      <body className={`${geist.variable} ${spaceMono.variable} antialiased bg-[#08080c] text-[#d4d4e0]`}>
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <TooltipProvider>
+          {children}
+        </TooltipProvider>
       </body>
     </html>
   );

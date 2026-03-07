@@ -61,9 +61,9 @@ body {
   font-family: var(--font-sans), -apple-system, sans-serif;
 }
 
-/* Gradient text */
+/* Gradient text — B&W */
 .gradient-text {
-  background: linear-gradient(135deg, var(--color-accent-light), var(--color-cyan));
+  background: linear-gradient(135deg, #ffffff, #888888);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -93,7 +93,7 @@ body {
   position: absolute;
   left: 0; top: 0; bottom: 0;
   width: 2px;
-  background: var(--color-accent);
+  background: #ffffff;
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -102,8 +102,8 @@ body {
 /* Mode button */
 .mode-btn { transition: all 0.2s; }
 .mode-btn.active {
-  background: rgba(99,102,241,0.15);
-  color: var(--color-accent-light);
+  background: rgba(255,255,255,0.1);
+  color: #ffffff;
 }
 
 :root {
@@ -142,8 +142,8 @@ body {
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
+  --background: #08080c;
+  --foreground: #d4d4e0;
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
