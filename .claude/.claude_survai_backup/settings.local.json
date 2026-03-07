@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npx --version)",
+      "WebFetch(domain:supabase.com)",
+      "WebFetch(domain:platform.openai.com)",
+      "WebFetch(domain:serpapi.com)",
+      "WebFetch(domain:docs.dndkit.com)",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); print\\(data[0][''text'']\\)\")",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --turbopack --yes)"
+    ]
+  }
+}
