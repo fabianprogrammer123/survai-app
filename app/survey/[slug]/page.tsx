@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, use } from "react"
+import { useState, useCallback, useRef, use } from "react"
 import { PasswordGate } from "@/components/survey/password-gate"
 import { VoicePanel } from "@/components/survey/voice-panel"
 import { QuestionnairePanel } from "@/components/survey/questionnaire-panel"
@@ -34,6 +34,7 @@ export default function SurveyPage({
   const [participant, setParticipant] = useState<ParticipantInfo | null>(null)
   const [questions, setQuestions] = useState<QuestionItem[]>([])
   const [answers, setAnswers] = useState<Record<string, string>>({})
+  const answersRef = useRef<Record<string, string>>({})
   const [completed, setCompleted] = useState(false)
 
   const handleAuthenticated = useCallback(
@@ -54,7 +55,8 @@ export default function SurveyPage({
 
   const handleAnswerUpdate = useCallback(
     (questionId: string, answer: string) => {
-      setAnswers((prev) => ({ ...prev, [questionId]: answer }))
+      answersRef.current = { ...answersRef.current, [questionId]: answer }
+      setAnswers({ ...answersRef.current })
     },
     [],
   )
@@ -62,6 +64,9 @@ export default function SurveyPage({
   const handleConversationEnd = useCallback(
     async (transcript: TranscriptMessage[], conversationId: string | null) => {
       if (completed) return
+
+      // Small delay to let any final tool calls settle
+      await new Promise((r) => setTimeout(r, 500))
 
       try {
         const transcriptText = transcript
@@ -71,23 +76,27 @@ export default function SurveyPage({
           )
           .join("\n")
 
-        await fetch(`/api/survey/${slug}/complete`, {
+        const res = await fetch(`/api/survey/${slug}/complete`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             transcript: transcriptText,
-            answers,
+            answers: answersRef.current,
             conversation_id: conversationId,
           }),
         })
 
-        setCompleted(true)
-        toast.success("Survey completed! Thank you for participating.")
+        if (res.ok) {
+          setCompleted(true)
+          toast.success("Survey completed! Thank you for participating.")
+        } else {
+          toast.error("Failed to save results")
+        }
       } catch {
         toast.error("Failed to save results")
       }
     },
-    [slug, answers, completed],
+    [slug, completed],
   )
 
   if (!authenticated) {

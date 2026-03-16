@@ -28,6 +28,8 @@ export function VoicePanel({
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [hasEnded, setHasEnded] = useState(false)
   const messagesRef = useRef<TranscriptMessage[]>([])
+  const onAnswerUpdateRef = useRef(onAnswerUpdate)
+  onAnswerUpdateRef.current = onAnswerUpdate
 
   const conversation = useConversation({
     clientTools: {
@@ -38,7 +40,8 @@ export function VoicePanel({
         question_id: string
         answer: string
       }) => {
-        onAnswerUpdate(question_id, answer)
+        console.log("[write_answer] called:", { question_id, answer })
+        onAnswerUpdateRef.current(question_id, answer)
         return "Answer recorded successfully"
       },
     },
@@ -54,6 +57,9 @@ export function VoicePanel({
     },
     onDisconnect: () => {
       setHasEnded(true)
+    },
+    onUnhandledClientToolCall: (toolCall) => {
+      console.warn("[unhandled tool call]", toolCall)
     },
   })
 
@@ -78,6 +84,8 @@ export function VoicePanel({
       const questionList = questions
         .map((q, i) => `Question ${i + 1} (ID: ${q.id}): ${q.text}`)
         .join("\n")
+
+      console.log("[startSession] questions variable:", questionList)
 
       const id = await conversation.startSession({
         signedUrl,
