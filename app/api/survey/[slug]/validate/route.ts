@@ -11,7 +11,7 @@ export async function POST(
 
     const supabase = createServiceClient()
     const { data: participant, error } = await supabase
-      .from("participants")
+      .from("guest_profiles")
       .select("id, first_name, last_name, survey_completed")
       .eq("slug", slug)
       .single()
@@ -32,7 +32,7 @@ export async function POST(
 
     // Verify password
     const { data: fullParticipant } = await supabase
-      .from("participants")
+      .from("guest_profiles")
       .select("password")
       .eq("slug", slug)
       .single()

@@ -12,7 +12,7 @@ export async function POST(
     const supabase = createServiceClient()
 
     const { data: participant, error: pError } = await supabase
-      .from("participants")
+      .from("guest_profiles")
       .select("id, survey_completed")
       .eq("slug", slug)
       .single()
@@ -67,7 +67,7 @@ export async function POST(
 
     // Mark participant as completed
     await supabase
-      .from("participants")
+      .from("guest_profiles")
       .update({ survey_completed: true })
       .eq("id", participant.id)
 

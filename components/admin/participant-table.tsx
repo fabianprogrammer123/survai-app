@@ -126,36 +126,44 @@ export function ParticipantTable() {
                       {p.first_name} {p.last_name}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        <code className="text-xs text-muted-foreground">
-                          /survey/{p.slug}
-                        </code>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0"
-                          onClick={() =>
-                            copyToClipboard(getSurveyUrl(p.slug), "Link")
-                          }
-                        >
-                          <LinkIcon className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      {p.slug ? (
+                        <div className="flex items-center gap-1">
+                          <code className="text-xs text-muted-foreground">
+                            /survey/{p.slug}
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() =>
+                              copyToClipboard(getSurveyUrl(p.slug!), "Link")
+                            }
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        <code className="text-xs">{p.password}</code>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0"
-                          onClick={() =>
-                            copyToClipboard(p.password, "Password")
-                          }
-                        >
-                          <KeyIcon className="h-3 w-3" />
-                        </Button>
-                      </div>
+                      {p.password ? (
+                        <div className="flex items-center gap-1">
+                          <code className="text-xs">{p.password}</code>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() =>
+                              copyToClipboard(p.password!, "Password")
+                            }
+                          >
+                            <KeyIcon className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {p.survey_completed ? (

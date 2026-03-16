@@ -9,7 +9,7 @@ export async function GET(
   const supabase = createServiceClient()
 
   const { data: participant, error: pError } = await supabase
-    .from("participants")
+    .from("guest_profiles")
     .select("id, first_name, last_name, survey_completed")
     .eq("slug", slug)
     .single()

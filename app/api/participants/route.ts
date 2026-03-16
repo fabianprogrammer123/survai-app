@@ -5,7 +5,7 @@ import { nanoid } from "nanoid"
 export async function GET() {
   const supabase = createServiceClient()
   const { data, error } = await supabase
-    .from("participants")
+    .from("guest_profiles")
     .select("*, responses(id, created_at)")
     .order("created_at", { ascending: true })
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServiceClient()
     const { data, error } = await supabase
-      .from("participants")
+      .from("guest_profiles")
       .insert({
         first_name: first_name.trim(),
         last_name: last_name.trim(),
