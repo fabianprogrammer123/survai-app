@@ -1,19 +1,62 @@
-import { Button } from "@/components/ui/button"
+"use client"
 
-export default function Page() {
+import { useEffect, useState } from "react"
+import { AttendeeCard } from "@/components/attendee-card"
+import { UsersIcon } from "lucide-react"
+
+interface Attendee {
+  id: string
+  first_name: string
+  last_name: string
+}
+
+export default function AttendeesPage() {
+  const [attendees, setAttendees] = useState<Attendee[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch("/api/attendees")
+        if (res.ok) setAttendees(await res.json())
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
   return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        <div>
-          <h1 className="font-medium">Project ready!</h1>
-          <p>You may now add components and start building.</p>
-          <p>We&apos;ve already added the button component for you.</p>
-          <Button className="mt-2">Button</Button>
+    <div className="mx-auto max-w-4xl px-6 py-12">
+      <div className="mb-8 text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+          <UsersIcon className="h-6 w-6" />
         </div>
-        <div className="font-mono text-xs text-muted-foreground">
-          (Press <kbd>d</kbd> to toggle dark mode)
-        </div>
+        <h1 className="text-3xl font-semibold">Participants</h1>
+        <p className="mt-1 text-muted-foreground">
+          Meet the people taking part in this questionnaire
+        </p>
       </div>
+
+      {loading ? (
+        <div className="py-12 text-center text-sm text-muted-foreground">
+          Loading...
+        </div>
+      ) : attendees.length === 0 ? (
+        <div className="py-12 text-center text-sm text-muted-foreground">
+          No participants registered yet.
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+          {attendees.map((a) => (
+            <AttendeeCard
+              key={a.id}
+              firstName={a.first_name}
+              lastName={a.last_name}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
