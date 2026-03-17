@@ -13,7 +13,7 @@ export async function POST(
 
     const { data: participant, error: pError } = await supabase
       .from("guest_profiles")
-      .select("id, survey_completed")
+      .select("id")
       .eq("slug", slug)
       .single()
 
@@ -24,11 +24,22 @@ export async function POST(
       )
     }
 
-    if (participant.survey_completed) {
-      return NextResponse.json(
-        { error: "Survey already completed" },
-        { status: 403 },
-      )
+    // Delete any previous responses (allows survey retake)
+    const { data: oldResponses } = await supabase
+      .from("responses")
+      .select("id")
+      .eq("participant_id", participant.id)
+
+    if (oldResponses && oldResponses.length > 0) {
+      const oldIds = oldResponses.map((r) => r.id)
+      await supabase
+        .from("response_answers")
+        .delete()
+        .in("response_id", oldIds)
+      await supabase
+        .from("responses")
+        .delete()
+        .eq("participant_id", participant.id)
     }
 
     // Create response

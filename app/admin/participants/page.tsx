@@ -1,7 +1,7 @@
 "use client"
 
-import { ParticipantTable } from "@/components/admin/participant-table"
+import { ParticipantGrid } from "@/components/admin/participant-grid"
 
 export default function ParticipantsPage() {
-  return <ParticipantTable />
+  return <ParticipantGrid />
 }

@@ -1,0 +1,352 @@
+/* ══════════════════════════════════════════════════════════
+   PUBLIC SITE — unified liquid glass styling
+   Extends the survey-theme base with navigation & sections
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Navigation bar ──────────────────────────────────────── */
+.nav-glass {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(6, 6, 10, 0.6);
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background 0.4s ease;
+}
+
+.nav-glass.scrolled {
+  background: rgba(6, 6, 10, 0.88);
+}
+
+/* ── Hero section ────────────────────────────────────────── */
+.hero-gradient {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 20%, rgba(201, 168, 124, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 20% 80%, rgba(180, 150, 110, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* ── Section headers ─────────────────────────────────────── */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--survey-accent);
+  white-space: nowrap;
+}
+
+/* ── Profile cards in public grid ────────────────────────── */
+.profile-card {
+  position: relative;
+  background: rgba(10, 10, 14, 0.55);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.profile-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 5%;
+  right: 5%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.12) 30%, rgba(255, 255, 255, 0.18) 50%, rgba(255, 255, 255, 0.12) 70%, transparent 100%);
+  z-index: 2;
+}
+
+.profile-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.04) 0%, transparent 30%, transparent 100%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.profile-card:hover {
+  background: rgba(14, 14, 20, 0.7);
+  border-color: rgba(201, 168, 124, 0.18);
+  transform: translateY(-3px) scale(1.004);
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.4),
+    0 0 30px rgba(201, 168, 124, 0.03),
+    inset 0 1px 1px rgba(255, 255, 255, 0.06);
+}
+
+.profile-card:hover::after {
+  background: linear-gradient(155deg, rgba(201, 168, 124, 0.06) 0%, transparent 35%, transparent 100%);
+}
+
+/* ── Search bar (public) ─────────────────────────────────── */
+.pub-search {
+  position: relative;
+  background: rgba(12, 12, 16, 0.7);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pub-search::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  z-index: 1;
+}
+
+.pub-search::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.04);
+  pointer-events: none;
+}
+
+.pub-search:focus-within {
+  background: rgba(12, 12, 16, 0.85);
+  border-color: rgba(201, 168, 124, 0.25);
+  box-shadow:
+    0 0 0 3px rgba(201, 168, 124, 0.05),
+    0 12px 40px rgba(0, 0, 0, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 0.07);
+}
+
+/* ── Chip styling (public) ───────────────────────────────── */
+.pub-chip {
+  position: relative;
+  background: rgba(12, 12, 16, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.pub-chip::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 15%;
+  right: 15%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+}
+
+.pub-chip:hover {
+  background: rgba(20, 20, 26, 0.7);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.pub-chip.active {
+  background: rgba(201, 168, 124, 0.1);
+  border-color: rgba(201, 168, 124, 0.25);
+  box-shadow: 0 0 24px rgba(201, 168, 124, 0.05);
+}
+
+/* ── Event detail glass card ─────────────────────────────── */
+.event-glass {
+  position: relative;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.event-glass::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 5%;
+  right: 5%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(201, 168, 124, 0.2) 50%, transparent 100%);
+}
+
+.event-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  background: linear-gradient(165deg, rgba(201, 168, 124, 0.03) 0%, transparent 20%, transparent 100%);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.04);
+  pointer-events: none;
+}
+
+/* ── Profile detail hero glass ───────────────────────────── */
+.profile-hero-glass {
+  position: relative;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 28px;
+  overflow: hidden;
+}
+
+.profile-hero-glass::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 6%;
+  right: 6%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(201, 168, 124, 0.3) 50%, transparent 100%);
+}
+
+.profile-hero-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(201, 168, 124, 0.03) 0%, transparent 25%, transparent 100%);
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.05),
+    inset 0 -1px 1px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
+
+/* ── Detail row hover ────────────────────────────────────── */
+.pub-detail-row {
+  border-radius: 14px;
+  transition: background 0.25s ease;
+}
+.pub-detail-row:hover {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+/* ── Stagger animations ──────────────────────────────────── */
+@keyframes pub-fade-in-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pub-scale-in {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.pub-fade-in-up {
+  animation: pub-fade-in-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.pub-scale-in {
+  animation: pub-scale-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.pub-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.pub-stagger > *:nth-child(2) { animation-delay: 35ms; }
+.pub-stagger > *:nth-child(3) { animation-delay: 70ms; }
+.pub-stagger > *:nth-child(4) { animation-delay: 105ms; }
+.pub-stagger > *:nth-child(5) { animation-delay: 140ms; }
+.pub-stagger > *:nth-child(6) { animation-delay: 175ms; }
+.pub-stagger > *:nth-child(7) { animation-delay: 210ms; }
+.pub-stagger > *:nth-child(8) { animation-delay: 245ms; }
+.pub-stagger > *:nth-child(9) { animation-delay: 280ms; }
+.pub-stagger > *:nth-child(10) { animation-delay: 315ms; }
+.pub-stagger > *:nth-child(11) { animation-delay: 350ms; }
+.pub-stagger > *:nth-child(12) { animation-delay: 385ms; }
+
+/* ── Shimmer loading skeleton ────────────────────────────── */
+@keyframes pub-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.pub-shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 100%);
+  background-size: 200% 100%;
+  animation: pub-shimmer 1.8s ease-in-out infinite;
+}
+
+/* ── Spin for search loader ──────────────────────────────── */
+@keyframes pub-spin { to { transform: rotate(360deg); } }
+.pub-spin { animation: pub-spin 0.8s linear infinite; }
+
+/* ── Placeholder styling ─────────────────────────────────── */
+.pub-search input::placeholder {
+  color: #9c9ca4 !important;
+  opacity: 0.3 !important;
+}
+
+/* ── Scrollbar (public pages) ────────────────────────────── */
+.pub-scroll::-webkit-scrollbar { width: 5px; }
+.pub-scroll::-webkit-scrollbar-track { background: transparent; }
+.pub-scroll::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 124, 0.1);
+  border-radius: 8px;
+}
+.pub-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(201, 168, 124, 0.2);
+}
+
+/* ── Responsive adjustments ──────────────────────────────── */
+.pub-hero-title {
+  font-size: clamp(32px, 7vw, 44px);
+}
+
+/* Responsive container padding */
+.pub-container {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding-left: 40px;
+  padding-right: 40px;
+}
+
+@media (max-width: 640px) {
+  .pub-container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .pub-grid-responsive {
+    grid-template-columns: 1fr !important;
+  }
+  .pub-detail-padding {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+  .nav-glass .pub-container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .pub-hero-title {
+    font-size: 32px !important;
+  }
+  /* chips scroll horizontally on small screens */
+  .pub-chip-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .pub-chip-row::-webkit-scrollbar { display: none; }
+}
+
+/* ── Footer ──────────────────────────────────────────────── */
+.pub-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(6, 6, 10, 0.3);
+}

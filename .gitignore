@@ -29,7 +29,18 @@ yarn-error.log*
 pnpm-debug.log*
 
 # env files
+.env
 .env*.local
+
+# data files
+*.csv
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!components.json
+!postcss.config.json
+ball_room.png
 
 # typescript
 *.tsbuildinfo

@@ -10,7 +10,7 @@ export default function AdminLayout({
     <div className="flex h-svh">
       <AdminSidebar />
       <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-5xl p-6">{children}</div>
+        {children}
       </main>
       <Toaster />
     </div>

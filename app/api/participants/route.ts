@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServiceClient } from "@/lib/supabase/server"
 import { nanoid } from "nanoid"
 
+// nanoid is still used for slug generation
+
 export async function GET() {
   const supabase = createServiceClient()
   const { data, error } = await supabase
@@ -27,7 +29,6 @@ export async function POST(request: NextRequest) {
     }
 
     const slug = nanoid(10)
-    const password = nanoid(6)
 
     const supabase = createServiceClient()
     const { data, error } = await supabase
@@ -36,7 +37,6 @@ export async function POST(request: NextRequest) {
         first_name: first_name.trim(),
         last_name: last_name.trim(),
         slug,
-        password,
       })
       .select()
       .single()

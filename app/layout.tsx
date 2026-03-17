@@ -1,8 +1,15 @@
+import type { Metadata } from "next"
 import { Geist_Mono, Outfit } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils"
+
+export const metadata: Metadata = {
+  title: "Compute & Cocktails — GTC Reception",
+  description:
+    "An exclusive GTC evening for founders, hackers, investors, and operators. Explore who's attending and find the people you want to meet.",
+}
 
 const outfit = Outfit({subsets:['latin'],variable:'--font-sans'})
 

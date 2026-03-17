@@ -10,19 +10,12 @@ export async function GET(
 
   const { data: participant, error: pError } = await supabase
     .from("guest_profiles")
-    .select("id, first_name, last_name, survey_completed")
+    .select("id, first_name, last_name")
     .eq("slug", slug)
     .single()
 
   if (pError || !participant) {
     return NextResponse.json({ error: "Survey not found" }, { status: 404 })
-  }
-
-  if (participant.survey_completed) {
-    return NextResponse.json(
-      { error: "Survey already completed" },
-      { status: 403 },
-    )
   }
 
   const { data: questions, error: qError } = await supabase

@@ -1,10 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { FileQuestionIcon, UsersIcon, LogOutIcon } from "lucide-react"
+import { FileQuestionIcon, UsersIcon } from "lucide-react"
 
 const navItems = [
   { href: "/admin/questions", label: "Questions", icon: FileQuestionIcon },
@@ -13,12 +12,6 @@ const navItems = [
 
 export function AdminSidebar() {
   const pathname = usePathname()
-  const router = useRouter()
-
-  async function handleLogout() {
-    await fetch("/api/admin/auth", { method: "DELETE" })
-    router.push("/admin")
-  }
 
   return (
     <aside className="flex h-svh w-56 flex-col border-r bg-muted/30">
@@ -44,17 +37,6 @@ export function AdminSidebar() {
           </Link>
         ))}
       </nav>
-      <div className="border-t p-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start gap-2 text-muted-foreground"
-          onClick={handleLogout}
-        >
-          <LogOutIcon className="h-4 w-4" />
-          Logout
-        </Button>
-      </div>
     </aside>
   )
 }

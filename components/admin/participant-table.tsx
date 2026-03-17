@@ -23,7 +23,6 @@ import {
   CopyIcon,
   ChevronDownIcon,
   LinkIcon,
-  KeyIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 import type { Participant } from "@/lib/types"
@@ -105,7 +104,6 @@ export function ParticipantTable() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Survey Link</TableHead>
-              <TableHead>Password</TableHead>
               <TableHead className="w-28">Status</TableHead>
               <TableHead className="w-10" />
             </TableRow>
@@ -147,25 +145,6 @@ export function ParticipantTable() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {p.password ? (
-                        <div className="flex items-center gap-1">
-                          <code className="text-xs">{p.password}</code>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0"
-                            onClick={() =>
-                              copyToClipboard(p.password!, "Password")
-                            }
-                          >
-                            <KeyIcon className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
                       {p.survey_completed ? (
                         <Badge variant="default">Completed</Badge>
                       ) : (
@@ -185,7 +164,7 @@ export function ParticipantTable() {
                   {p.survey_completed && (
                     <CollapsibleContent asChild>
                       <tr>
-                        <TableCell colSpan={5} className="bg-muted/20 p-4">
+                        <TableCell colSpan={4} className="bg-muted/20 p-4">
                           <ResponseDetail participantId={p.id} />
                         </TableCell>
                       </tr>

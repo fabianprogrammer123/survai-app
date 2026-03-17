@@ -6,9 +6,9 @@ export async function GET() {
   const { data, error } = await supabase
     .from("guest_profiles")
     .select(
-      "id, first_name, last_name, profile_pic_url, headline, company, job_title, city, country, linkedin_url, industry"
+      "id, first_name, last_name, name, profile_pic_url, headline, summary, company, job_title, occupation, city, state, country, country_full_name, linkedin_url, industry, experiences, education, skills"
     )
-    .order("created_at", { ascending: true })
+    .order("name", { ascending: true })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
