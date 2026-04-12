@@ -111,6 +111,12 @@ export interface SurveySettings {
   fontFamily?: 'inter' | 'dm-sans' | 'space-grotesk' | 'playfair' | 'jetbrains-mono';
   stylePreset?: 'google-forms' | 'typeform';
   colorMode?: 'light' | 'dark';
+  /**
+   * Canvas layout mode. 'scroll' renders all questions in a vertical scroll
+   * (Google Forms style). 'one-at-a-time' renders one question per screen
+   * with next/prev navigation (Typeform style).
+   */
+  layoutMode?: 'scroll' | 'one-at-a-time';
 }
 
 export const DEFAULT_SETTINGS: SurveySettings = {

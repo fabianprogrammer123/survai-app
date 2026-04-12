@@ -8,6 +8,7 @@ export interface PresetConfig {
   cssVars: Record<string, string>;
   fontFamily: string;
   className?: string;
+  layoutMode: 'scroll' | 'one-at-a-time';
 }
 
 export const STYLE_PRESETS: Record<StylePreset, PresetConfig> = {
@@ -15,6 +16,7 @@ export const STYLE_PRESETS: Record<StylePreset, PresetConfig> = {
     label: 'Google Forms',
     description: 'Clean and professional',
     fontFamily: 'inter',
+    layoutMode: 'scroll',
     cssVars: {
       '--sv-bg': '#f6f8fb',
       '--sv-card-bg': '#ffffff',
@@ -33,6 +35,7 @@ export const STYLE_PRESETS: Record<StylePreset, PresetConfig> = {
     label: 'Google Forms',
     description: 'Clean and professional',
     fontFamily: 'inter',
+    layoutMode: 'scroll',
     cssVars: {
       '--sv-bg': 'transparent',
       '--sv-card-bg': '#1c1b29',
@@ -50,6 +53,7 @@ export const STYLE_PRESETS: Record<StylePreset, PresetConfig> = {
     label: 'Typeform',
     description: 'Bold and engaging',
     fontFamily: 'dm-sans',
+    layoutMode: 'one-at-a-time',
     cssVars: {
       '--sv-bg': '#fafaf7',
       '--sv-card-bg': '#ffffff',
@@ -68,6 +72,7 @@ export const STYLE_PRESETS: Record<StylePreset, PresetConfig> = {
     label: 'Typeform',
     description: 'Bold and engaging',
     fontFamily: 'dm-sans',
+    layoutMode: 'one-at-a-time',
     cssVars: {
       '--sv-bg': 'transparent',
       '--sv-card-bg': '#16213e',

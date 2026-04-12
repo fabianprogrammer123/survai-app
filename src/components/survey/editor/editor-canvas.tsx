@@ -21,6 +21,7 @@ import { useSurveyStore } from '@/lib/survey/store';
 import { SortableElement } from './sortable-element';
 import { AddElementButton } from './add-element-button';
 import { SurveyHeaderCard } from './survey-header-card';
+import { TypeformCanvas } from './typeform-canvas';
 import { ElementRenderer } from '@/components/survey/elements/element-renderer';
 import { ResultsPanel } from '@/components/survey/results/results-panel';
 import { VoiceInterview } from '@/components/survey/voice-interview';
@@ -46,6 +47,7 @@ export function EditorCanvas({ className }: Props) {
   const backgroundImage = useSurveyStore((s) => s.survey.settings.backgroundImage);
   const visualEffect = useSurveyStore((s) => s.survey.settings.visualEffect);
   const fontFamily = useSurveyStore((s) => s.survey.settings.fontFamily);
+  const layoutMode = useSurveyStore((s) => s.survey.settings.layoutMode) || 'scroll';
   const editorMode = useSurveyStore((s) => s.editorMode);
   const reorderElements = useSurveyStore((s) => s.reorderElements);
   const selectElement = useSurveyStore((s) => s.selectElement);
@@ -131,6 +133,8 @@ export function EditorCanvas({ className }: Props) {
               );
             })}
           </>
+        ) : layoutMode === 'one-at-a-time' ? (
+          <TypeformCanvas elements={elements} />
         ) : (
           /* Editor mode: drag-and-drop sortable elements */
           <>

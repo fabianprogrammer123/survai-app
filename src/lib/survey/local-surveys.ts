@@ -3,6 +3,7 @@ import { hydrateSurveyTemplate } from '@/lib/templates/hydrate';
 import { getSurveyTemplate } from '@/lib/templates/surveys';
 import type { Survey, SurveySettings } from '@/types/survey';
 import { DEFAULT_SETTINGS } from '@/types/survey';
+import { STYLE_PRESETS } from '@/lib/survey/presets';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -121,10 +122,12 @@ export function createSurveyFromTemplate(
   const now = new Date().toISOString();
   const id = nanoid(10);
 
+  const preset = STYLE_PRESETS[`${stylePreset}-${colorMode}` as const];
   const settings: SurveySettings = {
     ...DEFAULT_SETTINGS,
     stylePreset,
     colorMode,
+    layoutMode: preset.layoutMode,
   };
 
   // Blank form — empty survey
