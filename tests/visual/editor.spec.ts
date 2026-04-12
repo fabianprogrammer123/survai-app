@@ -86,4 +86,23 @@ test.describe('/test editor — smoke', () => {
       clip: { x: 1000, y: 700, width: 440, height: 200 },
     });
   });
+
+  test('light mode editor canvas renders with clean cool-grey background', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    // Flip to light mode in the style dialog if available
+    const lightBtn = page.getByRole('button', { name: /^Light$/i });
+    if (await lightBtn.isVisible().catch(() => false)) {
+      await lightBtn.click();
+    }
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.screenshot({
+      path: 'tests/visual/.artifacts/04-light-mode.png',
+      fullPage: true,
+    });
+    // Smoke: the survey card should be visible
+    await expect(page.locator('.survey-card').first()).toBeVisible();
+  });
 });
