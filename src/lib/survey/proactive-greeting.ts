@@ -11,7 +11,7 @@ export function buildProactiveGreeting(): ChatMessage {
     id: nanoid(),
     role: 'assistant',
     content:
-      "Hey — I'm your survey co-pilot. Tell me what you're trying to learn and who you're asking, and I'll draft the questions. For example: \"customer onboarding feedback for a B2B SaaS, 5 minutes, focused on the first-week experience.\" What are we building?",
+      "Hi — I'm your survey co-pilot. What do you want to learn, and who are you asking?",
     timestamp: new Date().toISOString(),
   };
 }

@@ -49,7 +49,7 @@ test.describe('/test editor — smoke', () => {
     await page.waitForURL(/\/test\/edit/);
 
     // The chat panel should contain a proactive assistant message mentioning "survey"
-    await expect(page.getByText(/survey co-pilot|What are we building/i)).toBeVisible();
+    await expect(page.getByText(/survey co-pilot|What do you want to learn/i)).toBeVisible();
 
     // The old empty-state 4-suggestion grid must NOT be visible
     await expect(page.getByText(/Customer Satisfaction/i)).toHaveCount(0);
