@@ -5,7 +5,10 @@ export function createClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    // Return a mock client during build/dev without credentials
+    // During build/SSR this is expected; in the browser it means misconfiguration
+    if (typeof window !== 'undefined') {
+      console.error('[Supabase] NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY not set');
+    }
     return createBrowserClient(
       'http://localhost:54321',
       'placeholder-key'

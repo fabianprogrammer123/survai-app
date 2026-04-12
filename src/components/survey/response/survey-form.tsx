@@ -21,9 +21,10 @@ interface SurveyData {
 
 interface Props {
   survey: SurveyData;
+  guestToken?: string;
 }
 
-export function SurveyForm({ survey }: Props) {
+export function SurveyForm({ survey, guestToken }: Props) {
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,7 +60,7 @@ export function SurveyForm({ survey }: Props) {
       const res = await fetch(`/api/surveys/${survey.id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers }),
+        body: JSON.stringify({ answers, guestToken }),
       });
 
       if (!res.ok) throw new Error('Failed to submit');

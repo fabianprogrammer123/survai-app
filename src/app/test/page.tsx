@@ -1,0 +1,94 @@
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { DashboardHeader } from '@/components/survey/dashboard/dashboard-header';
+import { TemplateRow } from '@/components/survey/dashboard/template-row';
+import { SurveyGrid } from '@/components/survey/dashboard/survey-grid';
+import { StyleSelectorDialog } from '@/components/survey/dashboard/style-selector-dialog';
+import {
+  getAllSurveyMetas,
+  createSurveyFromTemplate,
+  deleteSurvey,
+  duplicateSurvey,
+  migrateLegacySurvey,
+  type SurveyMeta,
+} from '@/lib/survey/local-surveys';
+
+export default function TestDashboard() {
+  const router = useRouter();
+  const [surveys, setSurveys] = useState<SurveyMeta[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Style selector dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+
+  // Load surveys on mount
+  useEffect(() => {
+    migrateLegacySurvey();
+    setSurveys(getAllSurveyMetas());
+  }, []);
+
+  const refreshSurveys = useCallback(() => {
+    setSurveys(getAllSurveyMetas());
+  }, []);
+
+  function handleTemplateSelect(templateId: string) {
+    setSelectedTemplateId(templateId);
+    setDialogOpen(true);
+  }
+
+  function handleStyleConfirm(
+    templateId: string,
+    stylePreset: 'google-forms' | 'typeform',
+    colorMode: 'light' | 'dark'
+  ) {
+    const survey = createSurveyFromTemplate(templateId, stylePreset, colorMode);
+    setDialogOpen(false);
+    router.push(`/test/edit?id=${survey.id}`);
+  }
+
+  function handleDuplicate(id: string) {
+    duplicateSurvey(id);
+    refreshSurveys();
+  }
+
+  function handleDelete(id: string) {
+    deleteSurvey(id);
+    refreshSurveys();
+  }
+
+  return (
+    <div className="min-h-screen bg-background font-outfit">
+      <DashboardHeader
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
+
+      <main className="max-w-6xl mx-auto px-6 py-8 space-y-10">
+        {/* Template Gallery */}
+        <TemplateRow
+          onTemplateSelect={handleTemplateSelect}
+          searchQuery={searchQuery}
+        />
+
+        {/* Recent Surveys */}
+        <SurveyGrid
+          surveys={surveys}
+          searchQuery={searchQuery}
+          onDuplicate={handleDuplicate}
+          onDelete={handleDelete}
+        />
+      </main>
+
+      {/* Style Selector Dialog */}
+      <StyleSelectorDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        templateId={selectedTemplateId}
+        onConfirm={handleStyleConfirm}
+      />
+    </div>
+  );
+}

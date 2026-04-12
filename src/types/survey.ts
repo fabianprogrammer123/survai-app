@@ -19,6 +19,8 @@ interface BaseElement {
   title: string;
   description?: string;
   required: boolean;
+  accentColor?: string;
+  backgroundColor?: string;
 }
 
 interface WithOptions {
@@ -103,6 +105,12 @@ export interface SurveySettings {
   showProgressBar: boolean;
   shuffleQuestions: boolean;
   confirmationMessage: string;
+  backgroundImage?: string;
+  backgroundPrompt?: string;
+  visualEffect?: 'none' | 'gradient-overlay' | 'particles' | 'glass-morphism' | 'aurora';
+  fontFamily?: 'inter' | 'dm-sans' | 'space-grotesk' | 'playfair' | 'jetbrains-mono';
+  stylePreset?: 'google-forms' | 'typeform';
+  colorMode?: 'light' | 'dark';
 }
 
 export const DEFAULT_SETTINGS: SurveySettings = {
@@ -110,6 +118,8 @@ export const DEFAULT_SETTINGS: SurveySettings = {
   showProgressBar: true,
   shuffleQuestions: false,
   confirmationMessage: 'Thank you for your response!',
+  stylePreset: 'google-forms',
+  colorMode: 'dark',
 };
 
 export interface Survey {
@@ -123,15 +133,57 @@ export interface Survey {
   updatedAt: string;
 }
 
+export type ResponseChannel = 'web_form' | 'web_voice' | 'phone_call';
+
 export interface SurveyResponse {
   id: string;
   surveyId: string;
   answers: Record<string, unknown>;
+  channel?: ResponseChannel;
   respondentMetadata?: {
     userAgent?: string;
     submittedAt: string;
+    phoneNumber?: string;
+    conversationId?: string;
+    callDuration?: number;
   };
   submittedAt: string;
+}
+
+/** Response data for both AI-generated mock responses and real responses. */
+export interface SurveyResponseData {
+  id: string;
+  answers: Record<string, unknown>;
+  submittedAt: string;
+  channel?: ResponseChannel;
+  respondentMetadata?: Record<string, unknown>;
+}
+
+// ── Publishing & Distribution ──
+
+export type DistributionChannel = 'link' | 'email' | 'sms' | 'phone' | 'qr' | 'embed';
+
+export interface PhoneCampaign {
+  id: string;
+  batchId: string;         // ElevenLabs batch call ID
+  name: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+  recipientCount: number;
+  completedCount: number;
+  createdAt: string;
+}
+
+export interface PublishConfig {
+  agentId?: string;          // ElevenLabs agent ID for voice/phone
+  phoneNumberId?: string;    // ElevenLabs phone number ID
+  publicUrl?: string;        // Public survey URL
+  distributionChannels: DistributionChannel[];
+  phoneCampaigns: PhoneCampaign[];
+}
+
+export interface ClarifyingQuestion {
+  question: string;
+  response: string;
 }
 
 export interface ChatMessage {
@@ -139,4 +191,33 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  generationBatchId?: string;
+  inputMethod?: 'text' | 'voice';
+  clarifyingQuestions?: ClarifyingQuestion[];
+  proposals?: Proposal[];
+  isError?: boolean;
+}
+
+export interface Proposal {
+  label: string;
+  description?: string;
+  elements: SurveyElement[];
+  settings: SurveySettings;
+  blockMap: Record<string, string>;
+}
+
+export interface InsightCard {
+  elementId: string;
+  blockId: string;
+  blockLabel: string;
+  elementTitle: string;
+  rationale: string;
+}
+
+export interface GenerationBatch {
+  batchId: string;
+  messageId: string;
+  timestamp: string;
+  elementIds: string[];
+  insightCards: InsightCard[];
 }

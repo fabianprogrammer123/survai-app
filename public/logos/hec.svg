@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 130 44" fill="white">
+  <!-- HEC Paris logo -->
+  <!-- Bold letterforms with chevron accent and PARIS subtitle -->
+
+  <!-- Upward chevron accent (distinctive HEC brand element) -->
+  <path d="M2,16 L9,8 L16,16" fill="none" stroke="white" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- H -->
+  <path d="M24,3 H31 V15 H44 V3 H51 V33 H44 V22 H31 V33 H24 Z"/>
+
+  <!-- E -->
+  <path d="M58,3 H84 V9.5 H65 V15 H81 V21 H65 V26.5 H84 V33 H58 Z"/>
+
+  <!-- C -->
+  <path d="M103,3 Q91,3 91,18 Q91,33 103,33 H108 V26.5 H103 Q98,26.5 98,18 Q98,9.5 103,9.5 H108 V3 Z"/>
+
+  <!-- PARIS subtitle in spaced caps -->
+  <text x="66" y="43" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="8" letter-spacing="4.5" fill="white">PARIS</text>
+</svg>

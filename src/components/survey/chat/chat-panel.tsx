@@ -1,35 +1,39 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { useSurveyStore } from '@/lib/survey/store';
-import { ChatMessage } from '@/types/survey';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Send, Loader2, Sparkles, MessageSquare } from 'lucide-react';
-import { nanoid } from 'nanoid';
+import { useAiChat } from '@/hooks/use-ai-chat';
+import { useVoiceInput } from '@/hooks/use-voice-input';
+import { useVoiceOutput } from '@/hooks/use-voice-output';
+import { ChatHeader } from './chat-header';
+import { ChatEmptyState } from './chat-empty-state';
+import { ChatMessage } from './chat-message';
+import { ChatInputArea } from './chat-input-area';
+import { VoiceInputButton } from './voice-input-button';
+import { VoiceModeOverlay } from './voice-mode-overlay';
 import { cn } from '@/lib/utils';
-import { AiResponse } from '@/lib/ai/schema';
+import { nanoid } from 'nanoid';
+import type { GenerationBatch, Proposal, SurveyElement } from '@/types/survey';
 
 interface Props {
   className?: string;
+  aiEndpoint?: string;
+  aiStreamEndpoint?: string;
 }
 
-const SUGGESTIONS = [
-  'Create a customer feedback survey',
-  'Build an employee satisfaction form',
-  'Make a product research questionnaire',
-  'Design an event registration form',
-];
-
-export function ChatPanel({ className }: Props) {
-  const [input, setInput] = useState('');
+export function ChatPanel({ className, aiEndpoint, aiStreamEndpoint }: Props) {
   const chatMessages = useSurveyStore((s) => s.chatMessages);
   const isChatLoading = useSurveyStore((s) => s.isChatLoading);
-  const addChatMessage = useSurveyStore((s) => s.addChatMessage);
-  const setChatLoading = useSurveyStore((s) => s.setChatLoading);
-  const survey = useSurveyStore((s) => s.survey);
-  const setSurvey = useSurveyStore((s) => s.setSurvey);
+  const generationBatches = useSurveyStore((s) => s.generationBatches);
+  const chatMode = useSurveyStore((s) => s.chatMode);
+  const voiceEnabled = useSurveyStore((s) => s.voiceEnabled);
+
+  const { sendMessage, statusText } = useAiChat({
+    endpoint: aiEndpoint || '/api/ai/chat/test',
+    streamEndpoint: aiStreamEndpoint,
+  });
+  const voice = useVoiceInput();
+  const tts = useVoiceOutput();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,158 +42,130 @@ export function ChatPanel({ className }: Props) {
     }
   }, [chatMessages]);
 
-  async function handleSend(messageText?: string) {
-    const text = messageText || input.trim();
-    if (!text || isChatLoading) return;
+  // Auto-play TTS for new assistant messages in text+dictation modes
+  const lastMsgRef = useRef<string | null>(null);
+  useEffect(() => {
+    // Voice mode handles its own TTS via VoiceModeOverlay
+    if (chatMode === 'voice') return;
+    if (!voiceEnabled || chatMessages.length === 0) return;
+    const lastMsg = chatMessages[chatMessages.length - 1];
+    if (lastMsg.role === 'assistant' && lastMsg.id !== lastMsgRef.current) {
+      lastMsgRef.current = lastMsg.id;
+      tts.speak(lastMsg.content);
+    }
+  }, [chatMessages, voiceEnabled, chatMode, tts]);
 
-    const userMessage: ChatMessage = {
+  const handleSend = useCallback(
+    (text: string, inputMethod: 'text' | 'voice' = 'text') => {
+      if (!text.trim() || isChatLoading) return;
+      tts.stop();
+      sendMessage(text, inputMethod);
+    },
+    [sendMessage, isChatLoading, tts]
+  );
+
+  // Dictation: stop recording → transcribe → send
+  const handleVoiceStop = useCallback(async () => {
+    const transcription = await voice.stopRecording();
+    if (transcription.trim()) {
+      handleSend(transcription, 'voice');
+    }
+  }, [voice, handleSend]);
+
+  // Apply a selected proposal with streaming animation
+  const handleProposalSelect = useCallback(async (proposal: Proposal) => {
+    const store = useSurveyStore.getState();
+
+    store.addChatMessage({
       id: nanoid(),
       role: 'user',
-      content: text,
+      content: `I'll go with "${proposal.label}"`,
       timestamp: new Date().toISOString(),
-    };
+    });
 
-    addChatMessage(userMessage);
-    setInput('');
-    setChatLoading(true);
+    store.replaceElements([]);
+    store.updateSettings(proposal.settings);
+    store.setBlockMap(proposal.blockMap || {});
+    store.setStreaming(true);
 
-    try {
-      const res = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          surveyId: survey.id,
-          message: text,
-          history: chatMessages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to get AI response');
-      }
-
-      const data: AiResponse = await res.json();
-
-      const assistantMessage: ChatMessage = {
-        id: nanoid(),
-        role: 'assistant',
-        content: data.message,
-        timestamp: new Date().toISOString(),
-      };
-
-      addChatMessage(assistantMessage);
-
-      // Update survey state with AI response
-      setSurvey({
-        ...survey,
-        title: data.survey.title,
-        description: data.survey.description,
-        elements: data.survey.elements as any,
-        settings: data.survey.settings,
-      });
-    } catch (error) {
-      console.error('Chat error:', error);
-      addChatMessage({
-        id: nanoid(),
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date().toISOString(),
-      });
-    } finally {
-      setChatLoading(false);
+    for (const element of proposal.elements) {
+      await new Promise((r) => setTimeout(r, 150));
+      store.addElement(element);
+      store.addRecentlyAdded(element.id);
     }
+
+    store.setStreaming(false);
+    setTimeout(() => {
+      useSurveyStore.getState().clearRecentlyAdded();
+    }, 1000);
+
+    store.addChatMessage({
+      id: nanoid(),
+      role: 'assistant',
+      content: `Applied "${proposal.label}" to your survey. You can now customize each question by clicking on it.`,
+      timestamp: new Date().toISOString(),
+    });
+  }, []);
+
+  function getBatchForMessage(messageId: string): GenerationBatch | undefined {
+    return generationBatches.find((b) => b.messageId === messageId);
   }
 
   return (
-    <div className={cn('flex flex-col bg-background', className)}>
-      {/* Header */}
-      <div className="px-4 py-3 border-b shrink-0">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-semibold">AI Assistant</h2>
-        </div>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Describe your survey and I'll build it for you
-        </p>
-      </div>
+    <div className={cn('flex flex-col', className)}>
+      {/* Messages area */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        {chatMessages.length === 0 ? (
+          <ChatEmptyState onSuggestionClick={(prompt) => handleSend(prompt, 'text')} />
+        ) : (
+          <div className="p-4 space-y-3">
+            {chatMessages.map((msg) => (
+              <ChatMessage
+                key={msg.id}
+                message={msg}
+                batch={
+                  msg.generationBatchId
+                    ? getBatchForMessage(msg.id)
+                    : undefined
+                }
+                onSuggestionClick={(text) => handleSend(text, 'text')}
+                onProposalSelect={handleProposalSelect}
+              />
+            ))}
 
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
-        {chatMessages.length === 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <MessageSquare className="h-8 w-8" />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Tell me what kind of survey you'd like to create. I'll generate the questions and structure for you.
-            </p>
-            <div className="space-y-2">
-              {SUGGESTIONS.map((suggestion) => (
-                <button
-                  key={suggestion}
-                  onClick={() => handleSend(suggestion)}
-                  className="block w-full text-left text-sm px-3 py-2 rounded-md border hover:bg-muted transition-colors"
-                >
-                  {suggestion}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {chatMessages.map((msg) => (
-          <div
-            key={msg.id}
-            className={cn(
-              'flex',
-              msg.role === 'user' ? 'justify-end' : 'justify-start'
+            {/* Typing indicator with streaming status */}
+            {isChatLoading && (
+              <div className="flex justify-start animate-in fade-in-0 duration-200">
+                <div className="bg-muted/60 border rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:0ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:150ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:300ms]" />
+                  </div>
+                  {statusText && (
+                    <span className="text-xs text-muted-foreground ml-1">{statusText}</span>
+                  )}
+                </div>
+              </div>
             )}
-          >
-            <div
-              className={cn(
-                'max-w-[85%] rounded-lg px-3 py-2 text-sm',
-                msg.role === 'user'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted'
-              )}
-            >
-              {msg.content}
-            </div>
-          </div>
-        ))}
-
-        {isChatLoading && (
-          <div className="flex justify-start">
-            <div className="bg-muted rounded-lg px-3 py-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-            </div>
           </div>
         )}
       </div>
 
-      {/* Input */}
-      <div className="p-4 border-t shrink-0">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSend();
-          }}
-          className="flex gap-2"
-        >
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Describe your survey..."
-            disabled={isChatLoading}
+      {/* Input area — always text mode with mic button */}
+      <ChatInputArea
+        onSend={handleSend}
+        isLoading={isChatLoading}
+        voiceButton={
+          <VoiceInputButton
+            state={voice.state}
+            isSupported={voice.isSupported}
+            audioLevel={voice.audioLevel}
+            onStart={voice.startRecording}
+            onStop={handleVoiceStop}
           />
-          <Button type="submit" size="icon" disabled={!input.trim() || isChatLoading}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
-      </div>
+        }
+      />
     </div>
   );
 }

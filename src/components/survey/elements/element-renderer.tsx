@@ -17,6 +17,7 @@ interface ElementRendererProps {
   mode: ElementMode;
   value?: unknown;
   onChange?: (value: unknown) => void;
+  onUpdate?: (updates: Partial<SurveyElement>) => void;
 }
 
 const RENDERERS: Record<string, React.ComponentType<any>> = {
@@ -32,8 +33,8 @@ const RENDERERS: Record<string, React.ComponentType<any>> = {
   page_break: PageBreakRenderer,
 };
 
-export function ElementRenderer({ element, mode, value, onChange }: ElementRendererProps) {
+export function ElementRenderer({ element, mode, value, onChange, onUpdate }: ElementRendererProps) {
   const Renderer = RENDERERS[element.type];
   if (!Renderer) return <div>Unknown element type: {element.type}</div>;
-  return <Renderer element={element} mode={mode} value={value} onChange={onChange} />;
+  return <Renderer element={element} mode={mode} value={value} onChange={onChange} onUpdate={onUpdate} />;
 }

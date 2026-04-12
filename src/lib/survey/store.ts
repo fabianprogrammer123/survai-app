@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { Survey, SurveyElement, SurveySettings, ChatMessage, DEFAULT_SETTINGS } from '@/types/survey';
+import { Survey, SurveyElement, SurveySettings, ChatMessage, GenerationBatch, SurveyResponseData, PublishConfig, PhoneCampaign, DEFAULT_SETTINGS } from '@/types/survey';
+import type { A2UIMessage } from '@a2ui-sdk/types/0.8';
 import { nanoid } from 'nanoid';
 import { arrayMove } from '@dnd-kit/sortable';
 
@@ -9,6 +10,55 @@ interface SurveyEditorState {
   selectedElementId: string | null;
   chatMessages: ChatMessage[];
   isChatLoading: boolean;
+
+  /** Maps element IDs to their source block template ID. */
+  elementBlockMap: Record<string, string>;
+
+  /** Generation batches linking chat messages to created elements. */
+  generationBatches: GenerationBatch[];
+
+  /** Element IDs currently highlighted from chat insight hover. */
+  highlightedElementIds: string[];
+
+  /** Chat message ID highlighted from canvas element hover. */
+  highlightedMessageId: string | null;
+
+  /** Current editor mode: edit, preview, or results. */
+  editorMode: 'editor' | 'preview' | 'results';
+
+  /** Whether TTS auto-play is enabled. */
+  voiceEnabled: boolean;
+
+  /** Chat interaction mode: text (type), dictation (voice-to-text), voice (full voice mode). */
+  chatMode: 'text' | 'dictation' | 'voice';
+
+  /** Whether elements are being streamed onto the canvas. */
+  isStreaming: boolean;
+  /** Element IDs recently added via streaming (for entry animation). */
+  recentlyAddedIds: string[];
+
+  // ── Results / Mock-publish state ──
+  /** Whether the survey has been mock-published. */
+  isPublished: boolean;
+  /** AI-generated dummy responses. */
+  responses: SurveyResponseData[];
+  /** Loading state while dummy responses are being generated. */
+  isGeneratingResponses: boolean;
+  /** Chat messages for the results AI. */
+  resultsChatMessages: ChatMessage[];
+  /** Loading state for the results AI chat. */
+  isResultsChatLoading: boolean;
+  /** Current A2UI message spec from the results AI. */
+  a2uiMessages: A2UIMessage[];
+
+  // ── Publishing & Distribution ──
+  publishConfig: PublishConfig;
+  isCreatingAgent: boolean;
+
+  // ── Voice Interview ──
+  /** Active ElevenLabs conversation ID for voice interview. */
+  activeConversationId: string | null;
+  isVoiceInterviewActive: boolean;
 
   // Survey mutations
   setSurvey: (survey: Survey) => void;
@@ -22,11 +72,61 @@ interface SurveyEditorState {
   replaceElements: (elements: SurveyElement[]) => void;
   updateSettings: (settings: Partial<SurveySettings>) => void;
 
+  /** Where the last selection came from — 'canvas' triggers Properties tab switch. */
+  selectionSource: 'canvas' | 'ai' | null;
+
   // UI mutations
-  selectElement: (id: string | null) => void;
+  selectElement: (id: string | null, source?: 'canvas' | 'ai') => void;
   addChatMessage: (message: ChatMessage) => void;
   setChatLoading: (loading: boolean) => void;
   setChatMessages: (messages: ChatMessage[]) => void;
+
+  // AI generation
+  applyGeneration: (data: {
+    survey: { title: string; description: string; elements: SurveyElement[]; settings: SurveySettings };
+    blockMap?: Record<string, string>;
+  }) => void;
+
+  // Block map
+  addBlockMapping: (elementId: string, blockId: string) => void;
+
+  // Generation batches
+  addGenerationBatch: (batch: GenerationBatch) => void;
+
+  // Highlight state for insight mapping
+  setHighlightedElements: (ids: string[]) => void;
+  setHighlightedMessage: (id: string | null) => void;
+
+  // Editor mode
+  setEditorMode: (mode: 'editor' | 'preview' | 'results') => void;
+
+  // Voice
+  setVoiceEnabled: (enabled: boolean) => void;
+  setChatMode: (mode: 'text' | 'dictation' | 'voice') => void;
+
+  // Streaming
+  setStreaming: (streaming: boolean) => void;
+  addRecentlyAdded: (id: string) => void;
+  clearRecentlyAdded: () => void;
+  setBlockMap: (map: Record<string, string>) => void;
+
+  // Results / Mock-publish
+  setPublished: (published: boolean) => void;
+  setResponses: (responses: SurveyResponseData[]) => void;
+  setGeneratingResponses: (loading: boolean) => void;
+  addResultsChatMessage: (message: ChatMessage) => void;
+  setResultsChatLoading: (loading: boolean) => void;
+  setA2UIMessages: (messages: A2UIMessage[]) => void;
+
+  // Publishing & Distribution
+  setPublishConfig: (config: Partial<PublishConfig>) => void;
+  setCreatingAgent: (loading: boolean) => void;
+  addPhoneCampaign: (campaign: PhoneCampaign) => void;
+  updatePhoneCampaign: (id: string, updates: Partial<PhoneCampaign>) => void;
+
+  // Voice Interview
+  setActiveConversationId: (id: string | null) => void;
+  setVoiceInterviewActive: (active: boolean) => void;
 
   // Persistence
   markClean: () => void;
@@ -49,8 +149,36 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
   selectedElementId: null,
   chatMessages: [],
   isChatLoading: false,
+  elementBlockMap: {},
+  generationBatches: [],
+  highlightedElementIds: [],
+  highlightedMessageId: null,
+  editorMode: 'editor',
+  voiceEnabled: false,
+  chatMode: 'text',
+  isStreaming: false,
+  recentlyAddedIds: [],
 
-  setSurvey: (survey) => set({ survey, isDirty: false, selectedElementId: null }),
+  // Results / Mock-publish
+  isPublished: false,
+  responses: [],
+  isGeneratingResponses: false,
+  resultsChatMessages: [],
+  isResultsChatLoading: false,
+  a2uiMessages: [],
+
+  // Publishing & Distribution
+  publishConfig: {
+    distributionChannels: ['link'],
+    phoneCampaigns: [],
+  },
+  isCreatingAgent: false,
+
+  // Voice Interview
+  activeConversationId: null,
+  isVoiceInterviewActive: false,
+
+  setSurvey: (survey) => set({ survey, isDirty: false, selectedElementId: null, elementBlockMap: {} }),
 
   setTitle: (title) =>
     set((state) => ({
@@ -91,15 +219,19 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
     })),
 
   removeElement: (id) =>
-    set((state) => ({
-      survey: {
-        ...state.survey,
-        elements: state.survey.elements.filter((el) => el.id !== id),
-      },
-      isDirty: true,
-      selectedElementId:
-        state.selectedElementId === id ? null : state.selectedElementId,
-    })),
+    set((state) => {
+      const { [id]: _, ...remainingBlockMap } = state.elementBlockMap;
+      return {
+        survey: {
+          ...state.survey,
+          elements: state.survey.elements.filter((el) => el.id !== id),
+        },
+        isDirty: true,
+        selectedElementId:
+          state.selectedElementId === id ? null : state.selectedElementId,
+        elementBlockMap: remainingBlockMap,
+      };
+    }),
 
   reorderElements: (oldIndex, newIndex) =>
     set((state) => ({
@@ -115,13 +247,18 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
       const elementIndex = state.survey.elements.findIndex((el) => el.id === id);
       if (elementIndex === -1) return state;
       const original = state.survey.elements[elementIndex];
-      const duplicate = { ...original, id: `el_${nanoid(8)}` };
+      const newId = `el_${nanoid(8)}`;
+      const duplicate = { ...original, id: newId };
       const elements = [...state.survey.elements];
       elements.splice(elementIndex + 1, 0, duplicate);
+      // Copy block mapping for the duplicate
+      const blockMap = { ...state.elementBlockMap };
+      if (blockMap[id]) blockMap[newId] = blockMap[id];
       return {
         survey: { ...state.survey, elements },
         isDirty: true,
-        selectedElementId: duplicate.id,
+        selectedElementId: newId,
+        elementBlockMap: blockMap,
       };
     }),
 
@@ -140,7 +277,9 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
       isDirty: true,
     })),
 
-  selectElement: (id) => set({ selectedElementId: id }),
+  selectionSource: null,
+
+  selectElement: (id, source) => set({ selectedElementId: id, selectionSource: source ?? null }),
 
   addChatMessage: (message) =>
     set((state) => ({
@@ -150,6 +289,103 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
   setChatLoading: (loading) => set({ isChatLoading: loading }),
 
   setChatMessages: (messages) => set({ chatMessages: messages }),
+
+  // AI generation — apply a complete generated survey
+  applyGeneration: (data) =>
+    set({
+      survey: {
+        ...get().survey,
+        title: data.survey.title,
+        description: data.survey.description,
+        elements: data.survey.elements,
+        settings: data.survey.settings,
+      },
+      isDirty: true,
+      elementBlockMap: data.blockMap || {},
+      selectedElementId: null,
+    }),
+
+  addBlockMapping: (elementId, blockId) =>
+    set((state) => ({
+      elementBlockMap: { ...state.elementBlockMap, [elementId]: blockId },
+    })),
+
+  addGenerationBatch: (batch) =>
+    set((state) => ({
+      generationBatches: [...state.generationBatches, batch],
+    })),
+
+  setHighlightedElements: (ids) => set({ highlightedElementIds: ids }),
+
+  setHighlightedMessage: (id) => set({ highlightedMessageId: id }),
+
+  setEditorMode: (mode) => set({ editorMode: mode }),
+
+  setVoiceEnabled: (enabled) => set({ voiceEnabled: enabled }),
+
+  setChatMode: (mode) => set({
+    chatMode: mode,
+    // Auto-enable TTS for voice mode
+    voiceEnabled: mode === 'voice' || mode === 'dictation',
+  }),
+
+  setStreaming: (streaming) => set({ isStreaming: streaming }),
+
+  addRecentlyAdded: (id) =>
+    set((state) => ({
+      recentlyAddedIds: [...state.recentlyAddedIds, id],
+    })),
+
+  clearRecentlyAdded: () => set({ recentlyAddedIds: [] }),
+
+  setBlockMap: (map) => set({ elementBlockMap: map }),
+
+  // Results / Mock-publish
+  setPublished: (published) =>
+    set((state) => ({
+      isPublished: published,
+      survey: { ...state.survey, published },
+    })),
+
+  setResponses: (responses) => set({ responses }),
+
+  setGeneratingResponses: (loading) => set({ isGeneratingResponses: loading }),
+
+  addResultsChatMessage: (message) =>
+    set((state) => ({
+      resultsChatMessages: [...state.resultsChatMessages, message],
+    })),
+
+  setResultsChatLoading: (loading) => set({ isResultsChatLoading: loading }),
+
+  setA2UIMessages: (messages) => set({ a2uiMessages: messages }),
+
+  // Publishing & Distribution
+  setPublishConfig: (config) =>
+    set((state) => ({
+      publishConfig: { ...state.publishConfig, ...config },
+    })),
+  setCreatingAgent: (loading) => set({ isCreatingAgent: loading }),
+  addPhoneCampaign: (campaign) =>
+    set((state) => ({
+      publishConfig: {
+        ...state.publishConfig,
+        phoneCampaigns: [...state.publishConfig.phoneCampaigns, campaign],
+      },
+    })),
+  updatePhoneCampaign: (id, updates) =>
+    set((state) => ({
+      publishConfig: {
+        ...state.publishConfig,
+        phoneCampaigns: state.publishConfig.phoneCampaigns.map((c) =>
+          c.id === id ? { ...c, ...updates } : c
+        ),
+      },
+    })),
+
+  // Voice Interview
+  setActiveConversationId: (id) => set({ activeConversationId: id }),
+  setVoiceInterviewActive: (active) => set({ isVoiceInterviewActive: active }),
 
   markClean: () => set({ isDirty: false }),
 }));

@@ -26,7 +26,7 @@ export function AddElementButton() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="w-full inline-flex items-center justify-center rounded-md border border-dashed border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
+      <DropdownMenuTrigger className="w-full inline-flex items-center justify-center rounded-xl border border-dashed border-border/40 bg-card/50 px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-accent/50 hover:text-foreground hover:border-border/70 transition-all duration-200">
         <Plus className="mr-2 h-4 w-4" /> Add Question
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-64" align="center">

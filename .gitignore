@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# worktrees
+.worktrees/
+
+# visual QA artifacts
+tests/visual/.artifacts/
+
+# scheduled task runtime state
+.claude/scheduled_tasks.lock

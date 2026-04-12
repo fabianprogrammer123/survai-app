@@ -1,10 +1,11 @@
-import { PageBreakElement } from '@/types/survey';
+import { PageBreakElement, SurveyElement } from '@/types/survey';
 import { Separator } from '@/components/ui/separator';
 import { ElementMode } from './element-renderer';
 
 interface Props {
   element: PageBreakElement;
   mode: ElementMode;
+  onUpdate?: (updates: Partial<SurveyElement>) => void;
 }
 
 export function PageBreakRenderer({ element }: Props) {

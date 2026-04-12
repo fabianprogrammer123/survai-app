@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 44" fill="white">
+  <!-- Stanford University logo -->
+
+  <!-- Simplified Stanford Tree icon -->
+  <g transform="translate(2, 2)">
+    <!-- Tree canopy - two overlapping triangles for layered pine/redwood shape -->
+    <polygon points="12,0 19,11 16,11 21,21 3,21 8,11 5,11"/>
+    <!-- Trunk -->
+    <rect x="10" y="21" width="4" height="9" rx="0.8"/>
+    <!-- Ground line -->
+    <rect x="5" y="30.5" width="14" height="1.8" rx="0.9"/>
+  </g>
+
+  <!-- "Stanford" in elegant serif typeface -->
+  <text x="32" y="26" font-family="Georgia, 'Times New Roman', 'Palatino Linotype', serif" font-size="26" letter-spacing="0.5" fill="white">Stanford</text>
+
+  <!-- "UNIVERSITY" spaced small caps subtitle -->
+  <text x="32" y="38" font-family="Georgia, 'Times New Roman', serif" font-size="8.5" letter-spacing="5" fill="white">UNIVERSITY</text>
+</svg>

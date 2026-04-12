@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSurveyStore } from '@/lib/survey/store';
 import { createClient } from '@/lib/supabase/client';
 
@@ -9,6 +9,7 @@ export function useAutoSave() {
   const isDirty = useSurveyStore((s) => s.isDirty);
   const markClean = useSurveyStore((s) => s.markClean);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isDirty || !survey.id) return;
@@ -31,8 +32,10 @@ export function useAutoSave() {
 
       if (!error) {
         markClean();
+        setSaveError(null);
       } else {
         console.error('Auto-save failed:', error);
+        setSaveError(error.message || 'Auto-save failed');
       }
     }, 1500);
 
@@ -42,4 +45,6 @@ export function useAutoSave() {
       }
     };
   }, [survey, isDirty, markClean]);
+
+  return { saveError };
 }

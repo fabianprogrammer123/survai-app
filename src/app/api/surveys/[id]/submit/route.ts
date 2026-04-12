@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 
 export async function POST(
   req: NextRequest,
@@ -7,8 +7,16 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const { answers } = await req.json();
-    const supabase = await createClient();
+    const { answers, guestToken } = await req.json();
+
+    // Use service client since this is a public endpoint (no auth required)
+    let supabase;
+    try {
+      supabase = createServiceClient();
+    } catch {
+      // Supabase not configured — accept silently for local dev
+      return NextResponse.json({ success: true });
+    }
 
     // Verify survey exists and is published
     const { data: survey } = await supabase
@@ -26,14 +34,19 @@ export async function POST(
     }
 
     // Store the response
-    const { error } = await supabase.from('responses').insert({
-      survey_id: id,
-      answers,
-      respondent_metadata: {
-        userAgent: req.headers.get('user-agent'),
-        submittedAt: new Date().toISOString(),
-      },
-    });
+    const { data: response, error } = await supabase
+      .from('responses')
+      .insert({
+        survey_id: id,
+        answers,
+        channel: 'web_form',
+        metadata: {
+          userAgent: req.headers.get('user-agent'),
+          submittedAt: new Date().toISOString(),
+        },
+      })
+      .select('id')
+      .single();
 
     if (error) {
       console.error('Failed to store response:', error);
@@ -41,6 +54,32 @@ export async function POST(
         { error: 'Failed to submit response' },
         { status: 500 }
       );
+    }
+
+    // If a guest token was provided, link the response to the guest
+    if (guestToken && response) {
+      const { data: guest } = await supabase
+        .from('guests')
+        .select('id, name')
+        .eq('survey_id', id)
+        .eq('token', guestToken)
+        .single();
+
+      if (guest) {
+        await supabase
+          .from('guests')
+          .update({
+            status: 'completed',
+            response_id: response.id,
+            profile: {
+              name: guest.name,
+              answers,
+              completed: true,
+              generatedAt: new Date().toISOString(),
+            },
+          })
+          .eq('id', guest.id);
+      }
     }
 
     return NextResponse.json({ success: true });

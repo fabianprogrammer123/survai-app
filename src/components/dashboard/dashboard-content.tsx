@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, MoreVertical, FileText, BarChart3, Trash2, ExternalLink, Loader2 } from 'lucide-react';
+import { Plus, MoreVertical, FileText, BarChart3, Trash2, ExternalLink, Loader2, PieChart } from 'lucide-react';
 import Link from 'next/link';
 
 interface SurveyItem {
@@ -31,15 +31,20 @@ interface Props {
 
 export function DashboardContent({ surveys }: Props) {
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
   const handleCreate = async () => {
+    setError(null);
     setCreating(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setCreating(false);
+      return;
+    }
 
-    const { data, error } = await supabase
+    const { data, error: insertError } = await supabase
       .from('surveys')
       .insert({
         user_id: user.id,
@@ -56,13 +61,16 @@ export function DashboardContent({ surveys }: Props) {
       .select()
       .single();
 
-    if (data && !error) {
+    if (data && !insertError) {
       router.push(`/survey/${data.id}/edit`);
+    } else {
+      setError('Failed to create survey. Please try again.');
     }
     setCreating(false);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, title: string) => {
+    if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return;
     await supabase.from('surveys').delete().eq('id', id);
     router.refresh();
   };
@@ -84,6 +92,9 @@ export function DashboardContent({ surveys }: Props) {
             New Survey
           </Button>
         </div>
+        {error && (
+          <p className="text-sm text-red-500 mb-4">{error}</p>
+        )}
 
         {surveys.length === 0 ? (
           <Card>
@@ -127,6 +138,9 @@ export function DashboardContent({ surveys }: Props) {
                           <DropdownMenuItem onClick={() => router.push(`/survey/${survey.id}/responses`)}>
                             <BarChart3 className="mr-2 h-4 w-4" /> Responses
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => router.push(`/survey/${survey.id}/dashboard`)}>
+                            <PieChart className="mr-2 h-4 w-4" /> Dashboard
+                          </DropdownMenuItem>
                           {survey.published && (
                             <DropdownMenuItem onClick={() => window.open(`/s/${survey.id}`, '_blank')}>
                               <ExternalLink className="mr-2 h-4 w-4" /> View
@@ -134,7 +148,7 @@ export function DashboardContent({ surveys }: Props) {
                           )}
                           <DropdownMenuItem
                             variant="destructive"
-                            onClick={() => handleDelete(survey.id)}
+                            onClick={() => handleDelete(survey.id, survey.title)}
                           >
                             <Trash2 className="mr-2 h-4 w-4" /> Delete
                           </DropdownMenuItem>

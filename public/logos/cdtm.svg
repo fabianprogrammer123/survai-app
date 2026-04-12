@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 34" fill="white">
+  <!-- CDTM - Center for Digital Technology and Management -->
+  <!-- Clean modern geometric sans-serif -->
+
+  <!-- C -->
+  <path d="M14,2 Q2,2 2,17 Q2,32 14,32 H18 V25.5 H14 Q9,25.5 9,17 Q9,8.5 14,8.5 H18 V2 Z"/>
+
+  <!-- D -->
+  <path d="M24,2 H34 Q45,2 45,17 Q45,32 34,32 H24 Z M31,8.5 V25.5 H34 Q38,25.5 38,17 Q38,8.5 34,8.5 Z"/>
+
+  <!-- T -->
+  <path d="M50,2 H72 V8.5 H64.5 V32 H57.5 V8.5 H50 Z"/>
+
+  <!-- M -->
+  <path d="M77,2 H85 L94,17 L103,2 H111 V32 H104 V14 L94,29 L84,14 V32 H77 Z"/>
+</svg>

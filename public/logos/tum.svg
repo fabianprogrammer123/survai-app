@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 34" fill="white">
+  <!-- TUM - Technical University of Munich -->
+  <!-- Bold geometric sans-serif wordmark -->
+
+  <!-- T -->
+  <path d="M0,2 H22 V9 H14.5 V32 H7.5 V9 H0 Z"/>
+
+  <!-- U -->
+  <path d="M26,2 H33.5 V22 Q33.5,28 38.5,28 Q43.5,28 43.5,22 V2 H51 V22 Q51,34 38.5,34 Q26,34 26,22 Z"/>
+
+  <!-- M -->
+  <path d="M56,2 H64.5 L74,17 L83.5,2 H92 V32 H85 V14 L74,29 L63,14 V32 H56 Z"/>
+</svg>

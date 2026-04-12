@@ -2,9 +2,9 @@
 
 import { useEffect } from 'react';
 import { useSurveyStore } from '@/lib/survey/store';
-import { ChatPanel } from '@/components/survey/chat/chat-panel';
 import { EditorCanvas } from '@/components/survey/editor/editor-canvas';
-import { PropertiesPanel } from '@/components/survey/editor/properties-panel';
+import { BlockPalette } from '@/components/survey/editor/block-palette';
+import { RightPanel } from '@/components/survey/editor/right-panel';
 import { EditorToolbar } from '@/components/survey/editor/editor-toolbar';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { Survey } from '@/types/survey';
@@ -20,15 +20,20 @@ export function SurveyEditor({ initialSurvey }: SurveyEditorProps) {
     setSurvey(initialSurvey);
   }, [initialSurvey, setSurvey]);
 
-  useAutoSave();
+  const { saveError } = useAutoSave();
 
   return (
     <div className="flex h-screen flex-col bg-background">
       <EditorToolbar />
+      {saveError && (
+        <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2 text-sm text-destructive flex items-center gap-2">
+          <span className="font-medium">Auto-save failed:</span> {saveError}
+        </div>
+      )}
       <div className="flex flex-1 overflow-hidden">
-        <ChatPanel className="w-[320px] border-r shrink-0" />
+        <BlockPalette className="w-[200px] border-r shrink-0 bg-background" />
         <EditorCanvas className="flex-1 min-w-0" />
-        <PropertiesPanel className="w-[320px] border-l shrink-0" />
+        <RightPanel className="w-[400px] border-l shrink-0 bg-background" />
       </div>
     </div>
   );
