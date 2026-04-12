@@ -221,6 +221,63 @@ test.describe('/test editor — smoke', () => {
     await expect(page.getByText(/Short Text/i).first()).toBeVisible();
   });
 
+  test('Typeform preset shows one question at a time with nav controls', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Typeform/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+
+    // Add two questions via the Add Question menu
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByText(/Short Text/i).first().click();
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByText(/Short Text/i).first().click();
+
+    const canvas = page.locator('[data-typeform-canvas="true"]');
+    await expect(canvas).toBeVisible();
+
+    // Only one survey card should render inside the typeform canvas
+    const cards = canvas.locator('.survey-card');
+    await expect(cards).toHaveCount(1);
+
+    // Nav controls are visible
+    await expect(page.locator('[data-typeform-prev="true"]')).toBeVisible();
+    await expect(page.locator('[data-typeform-next="true"]')).toBeVisible();
+
+    // Counter shows 1 / 2
+    await expect(page.getByText(/^1 \/ 2$/)).toBeVisible();
+
+    // Advance and verify counter flips
+    await page.locator('[data-typeform-next="true"]').click();
+    await expect(page.getByText(/^2 \/ 2$/)).toBeVisible();
+
+    await page.screenshot({
+      path: 'tests/visual/.artifacts/08-typeform-canvas.png',
+      fullPage: true,
+    });
+  });
+
+  test('Google Forms preset still renders scroll-all canvas', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+
+    // Add two questions
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByRole('menuitem', { name: /Short Text/i }).first().click();
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByRole('menuitem', { name: /Short Text/i }).first().click();
+
+    // Google Forms canvas should NOT have the typeform data attr
+    await expect(page.locator('[data-typeform-canvas="true"]')).toHaveCount(0);
+    // And at least 2 question cards + header card = 3 simultaneously visible
+    const cards = page.locator('.survey-card');
+    expect(await cards.count()).toBeGreaterThanOrEqual(3);
+  });
+
   test('linear scale distributes numbers evenly between labels', async ({ page }) => {
     await page.goto('/test');
     await page.getByText(/Blank form/i).first().click();
