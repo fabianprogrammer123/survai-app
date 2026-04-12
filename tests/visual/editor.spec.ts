@@ -252,6 +252,13 @@ test.describe('/test editor — smoke', () => {
     await page.locator('[data-typeform-next="true"]').click();
     await expect(page.getByText(/^2 \/ 2$/)).toBeVisible();
 
+    // Dismiss any lingering popover (the Add Question menu opens upward
+    // from the bottom and overlaps the card, producing a ghosted capture
+    // if we screenshot mid-transition). Pressing Escape and giving
+    // animations a beat produces a clean artifact for visual QA.
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(350);
+
     await page.screenshot({
       path: 'tests/visual/.artifacts/08-typeform-canvas.png',
       fullPage: true,
