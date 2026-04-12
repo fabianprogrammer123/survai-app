@@ -57,6 +57,9 @@ export function ChatPanel({ className, aiEndpoint, aiStreamEndpoint }: Props) {
   }, [chatMessages, voiceEnabled, chatMode, tts]);
 
   // Seed the proactive AI greeting on first mount for blank surveys.
+  // Intentional mount-once effect: reads store via getState() so there
+  // are no captured deps, and the hasSeededProactiveGreeting flag
+  // guards against re-seeding on remounts within the session.
   useEffect(() => {
     const store = useSurveyStore.getState();
     if (
