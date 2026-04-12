@@ -21,12 +21,9 @@ export function TypeformCanvas({ elements }: Props) {
   const [index, setIndex] = useState(0);
   const updateElement = useSurveyStore((s) => s.updateElement);
 
-  // Clamp index when elements change (e.g., deletion)
-  useEffect(() => {
-    if (index >= elements.length && elements.length > 0) {
-      setIndex(elements.length - 1);
-    }
-  }, [elements.length, index]);
+  // Note: a clamping effect here would trip react-hooks/set-state-in-effect.
+  // We clamp at read time (`current` below) and in goPrev/goNext, so stale
+  // index values are harmless even after deletions.
 
   const goPrev = useCallback(() => {
     setIndex((i) => Math.max(0, i - 1));
