@@ -11,6 +11,7 @@ import { ChatMessage } from './chat-message';
 import { ChatInputArea } from './chat-input-area';
 import { VoiceInputButton } from './voice-input-button';
 import { VoiceModeOverlay } from './voice-mode-overlay';
+import { buildProactiveGreeting } from '@/lib/survey/proactive-greeting';
 import { cn } from '@/lib/utils';
 import { nanoid } from 'nanoid';
 import type { GenerationBatch, Proposal, SurveyElement } from '@/types/survey';
@@ -54,6 +55,20 @@ export function ChatPanel({ className, aiEndpoint, aiStreamEndpoint }: Props) {
       tts.speak(lastMsg.content);
     }
   }, [chatMessages, voiceEnabled, chatMode, tts]);
+
+  // Seed the proactive AI greeting on first mount for blank surveys.
+  useEffect(() => {
+    const store = useSurveyStore.getState();
+    if (
+      !store.hasSeededProactiveGreeting &&
+      store.chatMessages.length === 0 &&
+      store.survey.elements.length === 0
+    ) {
+      store.addChatMessage(buildProactiveGreeting());
+      store.markProactiveGreetingSeeded();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSend = useCallback(
     (text: string, inputMethod: 'text' | 'voice' = 'text') => {

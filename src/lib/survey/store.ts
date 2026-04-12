@@ -34,6 +34,8 @@ interface SurveyEditorState {
 
   /** Whether elements are being streamed onto the canvas. */
   isStreaming: boolean;
+  /** Whether the proactive AI greeting has already been seeded this session. */
+  hasSeededProactiveGreeting: boolean;
   /** Element IDs recently added via streaming (for entry animation). */
   recentlyAddedIds: string[];
 
@@ -80,6 +82,7 @@ interface SurveyEditorState {
   addChatMessage: (message: ChatMessage) => void;
   setChatLoading: (loading: boolean) => void;
   setChatMessages: (messages: ChatMessage[]) => void;
+  markProactiveGreetingSeeded: () => void;
 
   // AI generation
   applyGeneration: (data: {
@@ -158,6 +161,7 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
   chatMode: 'text',
   isStreaming: false,
   recentlyAddedIds: [],
+  hasSeededProactiveGreeting: false,
 
   // Results / Mock-publish
   isPublished: false,
@@ -289,6 +293,8 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
   setChatLoading: (loading) => set({ isChatLoading: loading }),
 
   setChatMessages: (messages) => set({ chatMessages: messages }),
+
+  markProactiveGreetingSeeded: () => set({ hasSeededProactiveGreeting: true }),
 
   // AI generation — apply a complete generated survey
   applyGeneration: (data) =>

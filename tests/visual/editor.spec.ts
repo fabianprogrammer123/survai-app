@@ -40,4 +40,18 @@ test.describe('/test editor — smoke', () => {
       fullPage: true,
     });
   });
+
+  test('blank editor seeds a proactive assistant greeting', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+
+    // The chat panel should contain a proactive assistant message mentioning "survey"
+    await expect(page.getByText(/survey co-pilot|What are we building/i)).toBeVisible();
+
+    // The old empty-state 4-suggestion grid must NOT be visible
+    await expect(page.getByText(/Customer Satisfaction/i)).toHaveCount(0);
+  });
 });
