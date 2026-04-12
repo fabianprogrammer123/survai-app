@@ -67,7 +67,6 @@ export function ChatPanel({ className, aiEndpoint, aiStreamEndpoint }: Props) {
       store.addChatMessage(buildProactiveGreeting());
       store.markProactiveGreetingSeeded();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSend = useCallback(
