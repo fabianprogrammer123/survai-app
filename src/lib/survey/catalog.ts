@@ -20,6 +20,7 @@ export interface CatalogEntry {
   description: string;
   icon: LucideIcon;
   category: 'text' | 'choice' | 'other' | 'layout';
+  hidden?: boolean;
   defaultElement: () => SurveyElement;
 }
 
@@ -126,6 +127,7 @@ export const CATALOG: CatalogEntry[] = [
     type: 'file_upload',
     label: 'File Upload',
     description: 'Upload files',
+    hidden: true,
     icon: Upload,
     category: 'other',
     defaultElement: () => ({

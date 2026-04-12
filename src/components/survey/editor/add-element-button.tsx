@@ -17,11 +17,12 @@ import { Plus } from 'lucide-react';
 export function AddElementButton() {
   const addElement = useSurveyStore((s) => s.addElement);
 
+  const addable = CATALOG.filter((e) => !e.hidden);
   const categories = {
-    text: { label: 'Text', entries: CATALOG.filter((c) => c.category === 'text') },
-    choice: { label: 'Choice', entries: CATALOG.filter((c) => c.category === 'choice') },
-    other: { label: 'Other', entries: CATALOG.filter((c) => c.category === 'other') },
-    layout: { label: 'Layout', entries: CATALOG.filter((c) => c.category === 'layout') },
+    text: { label: 'Text', entries: addable.filter((c) => c.category === 'text') },
+    choice: { label: 'Choice', entries: addable.filter((c) => c.category === 'choice') },
+    other: { label: 'Other', entries: addable.filter((c) => c.category === 'other') },
+    layout: { label: 'Layout', entries: addable.filter((c) => c.category === 'layout') },
   };
 
   return (

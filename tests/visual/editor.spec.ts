@@ -208,6 +208,19 @@ test.describe('/test editor — smoke', () => {
     await expect(page.locator('[data-element-type-badge="checkboxes"]')).toBeVisible();
   });
 
+  test('file upload is not offered in the Add Question menu', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    // File Upload should NOT appear in the menu
+    await expect(page.getByText(/File Upload/i)).toHaveCount(0);
+    // But a known-working type SHOULD
+    await expect(page.getByText(/Short Text/i).first()).toBeVisible();
+  });
+
   test('linear scale distributes numbers evenly between labels', async ({ page }) => {
     await page.goto('/test');
     await page.getByText(/Blank form/i).first().click();
