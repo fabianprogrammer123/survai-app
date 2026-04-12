@@ -6,6 +6,7 @@ import { SurveyElement } from '@/types/survey';
 import { useSurveyStore } from '@/lib/survey/store';
 import { getBlockTemplate } from '@/lib/templates/blocks';
 import { ElementRenderer } from '@/components/survey/elements/element-renderer';
+import { ElementTypeBadge } from './element-type-badge';
 import { Badge } from '@/components/ui/badge';
 import { GripVertical, Copy, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -114,6 +115,11 @@ export function SortableElement({ element, index = 0, isDragOverlay }: Props) {
         setHighlightedMessage(null);
       }}
     >
+      {/* Element type badge — top-right, hidden on hover so actions can take its place */}
+      <div className="absolute top-2 right-2 z-10 pointer-events-none group-hover:opacity-0 transition-opacity">
+        <ElementTypeBadge type={element.type} />
+      </div>
+
       {/* Question number badge — positioned inside the left padding area */}
       <span className="absolute top-3.5 left-4 text-[10px] font-mono text-muted-foreground/50 tabular-nums select-none">
         Q{index + 1}

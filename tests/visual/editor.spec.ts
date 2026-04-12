@@ -196,4 +196,15 @@ test.describe('/test editor — smoke', () => {
     const countAfter = await page.locator('.survey-card').last().locator('input[placeholder^="Option"]').count();
     expect(countAfter).toBe(countBefore + 1);
   });
+
+  test('editor shows element type badge on added questions', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByText(/Checkboxes/i).first().click();
+    await expect(page.locator('[data-element-type-badge="checkboxes"]')).toBeVisible();
+  });
 });
