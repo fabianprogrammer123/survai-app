@@ -29,7 +29,7 @@ test.describe('/test editor — smoke', () => {
     const fontFamily = await title.evaluate((el) =>
       window.getComputedStyle(el).fontFamily
     );
-    expect(fontFamily.toLowerCase()).not.toMatch(/times|serif(?!.*sans)/);
+    expect(fontFamily.toLowerCase()).not.toMatch(/times|(?<!sans-)serif\b/);
 
     await page.screenshot({
       path: 'tests/visual/.artifacts/02-blank-editor.png',
