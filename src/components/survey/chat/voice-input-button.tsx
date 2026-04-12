@@ -26,7 +26,7 @@ export function VoiceInputButton({
       onClick={state === 'recording' ? onStop : onStart}
       disabled={state === 'transcribing'}
       className={cn(
-        'relative h-10 w-10 rounded-xl flex items-center justify-center transition-all shrink-0',
+        'relative h-8 w-8 rounded-lg flex items-center justify-center transition-all shrink-0',
         state === 'idle' && 'text-muted-foreground hover:text-foreground hover:bg-muted',
         state === 'recording' && 'text-red-500 bg-red-50 voice-recording',
         state === 'transcribing' && 'text-muted-foreground opacity-60'
@@ -49,7 +49,7 @@ export function VoiceInputButton({
                 className="waveform-bar bg-red-500"
                 style={{
                   animationDelay: `${i * 0.15}s`,
-                  height: `${4 + audioLevel * 12}px`,
+                  height: `${3 + audioLevel * 10}px`,
                 }}
               />
             ))}

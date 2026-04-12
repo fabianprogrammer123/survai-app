@@ -48,7 +48,6 @@ export function ChatInputArea({ onSend, isLoading, voiceButton }: ChatInputAreaP
   return (
     <div className="p-4 border-t border-border/60 shrink-0 bg-background">
       <div className="flex items-end gap-2">
-        {voiceButton}
         <div className="flex-1 relative">
           <textarea
             ref={textareaRef}
@@ -59,13 +58,16 @@ export function ChatInputArea({ onSend, isLoading, voiceButton }: ChatInputAreaP
             disabled={isLoading}
             rows={1}
             className={cn(
-              'w-full resize-none rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-sm leading-relaxed',
+              'w-full resize-none rounded-xl border border-border/50 bg-muted/20 pl-4 pr-12 py-3 text-sm leading-relaxed',
               'placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30',
               'disabled:opacity-50 transition-all',
               'min-h-[44px] max-h-[120px]',
               'overflow-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]'
             )}
           />
+          {voiceButton && (
+            <div className="absolute right-1.5 bottom-1.5">{voiceButton}</div>
+          )}
         </div>
         <Button
           size="icon"

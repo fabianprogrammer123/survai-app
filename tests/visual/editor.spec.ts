@@ -54,4 +54,36 @@ test.describe('/test editor — smoke', () => {
     // The old empty-state 4-suggestion grid must NOT be visible
     await expect(page.getByText(/Customer Satisfaction/i)).toHaveCount(0);
   });
+
+  test('microphone button is docked inside the chat input wrapper', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+
+    const textarea = page.getByPlaceholder('Describe your survey...');
+    await expect(textarea).toBeVisible();
+
+    const mic = page.getByTitle(/Start voice input|Stop recording/i);
+    await expect(mic).toBeVisible();
+
+    // The mic button's bounding box should sit inside the textarea's bounding box (docked)
+    const taBox = await textarea.boundingBox();
+    const micBox = await mic.boundingBox();
+    expect(taBox).not.toBeNull();
+    expect(micBox).not.toBeNull();
+    if (taBox && micBox) {
+      expect(micBox.x).toBeGreaterThanOrEqual(taBox.x);
+      expect(micBox.x + micBox.width).toBeLessThanOrEqual(taBox.x + taBox.width + 2);
+      expect(micBox.y).toBeGreaterThanOrEqual(taBox.y - 2);
+      expect(micBox.y + micBox.height).toBeLessThanOrEqual(taBox.y + taBox.height + 2);
+    }
+
+    await page.screenshot({
+      path: 'tests/visual/.artifacts/03-mic-docked.png',
+      fullPage: false,
+      clip: { x: 1000, y: 700, width: 440, height: 200 },
+    });
+  });
 });
