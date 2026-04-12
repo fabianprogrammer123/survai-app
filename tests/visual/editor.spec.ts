@@ -178,4 +178,22 @@ test.describe('/test editor — smoke', () => {
     }));
     expect(dims.clientHeight).toBeGreaterThan(0);
   });
+
+  test('checkbox question supports adding a 4th option inline', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByText(/Checkboxes/i).first().click();
+
+    const addBtn = page.locator('[data-add-option="checkbox"]').first();
+    await expect(addBtn).toBeVisible({ timeout: 5000 });
+
+    const countBefore = await page.locator('.survey-card').last().locator('input[placeholder^="Option"]').count();
+    await addBtn.click();
+    const countAfter = await page.locator('.survey-card').last().locator('input[placeholder^="Option"]').count();
+    expect(countAfter).toBe(countBefore + 1);
+  });
 });
