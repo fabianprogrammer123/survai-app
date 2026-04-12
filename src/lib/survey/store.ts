@@ -4,6 +4,31 @@ import type { A2UIMessage } from '@a2ui-sdk/types/0.8';
 import { nanoid } from 'nanoid';
 import { arrayMove } from '@dnd-kit/sortable';
 
+/**
+ * Drop null/undefined and obviously-malformed entries from an elements array
+ * before it enters the store. The AI generation path has been observed to
+ * occasionally produce sparse arrays (see memory/project_undefined_elements_rootcause.md);
+ * catching it here prevents downstream .type reads from crashing the editor.
+ */
+function sanitizeElements(elements: unknown): SurveyElement[] {
+  if (!Array.isArray(elements)) return [];
+  const clean = elements.filter(
+    (el): el is SurveyElement =>
+      el != null &&
+      typeof el === 'object' &&
+      'id' in el &&
+      'type' in el &&
+      typeof (el as SurveyElement).id === 'string' &&
+      typeof (el as SurveyElement).type === 'string'
+  );
+  if (clean.length !== elements.length) {
+    console.warn(
+      `[survey/store] dropped ${elements.length - clean.length} invalid element(s) during write`
+    );
+  }
+  return clean;
+}
+
 interface SurveyEditorState {
   survey: Survey;
   isDirty: boolean;
@@ -182,7 +207,13 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
   activeConversationId: null,
   isVoiceInterviewActive: false,
 
-  setSurvey: (survey) => set({ survey, isDirty: false, selectedElementId: null, elementBlockMap: {} }),
+  setSurvey: (survey) =>
+    set({
+      survey: { ...survey, elements: sanitizeElements(survey.elements) },
+      isDirty: false,
+      selectedElementId: null,
+      elementBlockMap: {},
+    }),
 
   setTitle: (title) =>
     set((state) => ({
@@ -198,6 +229,15 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
 
   addElement: (element, index) =>
     set((state) => {
+      if (
+        !element ||
+        typeof element !== 'object' ||
+        typeof element.id !== 'string' ||
+        typeof element.type !== 'string'
+      ) {
+        console.warn('[survey/store] addElement: refusing to add invalid element', element);
+        return state;
+      }
       const elements = [...state.survey.elements];
       if (index !== undefined) {
         elements.splice(index, 0, element);
@@ -268,7 +308,7 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
 
   replaceElements: (elements) =>
     set((state) => ({
-      survey: { ...state.survey, elements },
+      survey: { ...state.survey, elements: sanitizeElements(elements) },
       isDirty: true,
     })),
 
@@ -303,7 +343,7 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
         ...get().survey,
         title: data.survey.title,
         description: data.survey.description,
-        elements: data.survey.elements,
+        elements: sanitizeElements(data.survey.elements),
         settings: data.survey.settings,
       },
       isDirty: true,
