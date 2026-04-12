@@ -60,7 +60,7 @@ function buildSystemPrompt(survey: Survey): string {
   );
 
   const questionsBlock = survey.elements
-    .filter((el) => el.type !== 'page_break')
+    .filter((el) => el && el.type !== 'page_break')
     .map((el, i) => describeElement(el, i))
     .filter(Boolean)
     .join('\n');

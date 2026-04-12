@@ -67,7 +67,7 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
   const addPhoneCampaign = useSurveyStore((s) => s.addPhoneCampaign);
 
   const answerableCount = elements.filter(
-    (el) => !['section_header', 'page_break', 'file_upload'].includes(el.type)
+    (el) => el && !['section_header', 'page_break', 'file_upload'].includes(el.type)
   ).length;
 
   const surveyUrl = publishConfig.publicUrl || `${typeof window !== 'undefined' ? window.location.origin : ''}/s/${survey.id || nanoid(10)}`;

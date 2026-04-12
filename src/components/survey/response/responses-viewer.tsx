@@ -71,7 +71,7 @@ export function ResponsesViewer({ survey, responses }: Props) {
               <CardContent>
                 <div className="space-y-3">
                   {elements
-                    .filter((el) => el.type !== 'section_header' && el.type !== 'page_break')
+                    .filter((el) => el && el.type !== 'section_header' && el.type !== 'page_break')
                     .map((element) => {
                       const answer = response.answers[element.id];
                       return (
