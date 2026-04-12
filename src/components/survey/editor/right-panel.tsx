@@ -56,7 +56,7 @@ export function RightPanel({ className, aiEndpoint, aiStreamEndpoint }: RightPan
       {activeTab === 'chat' ? (
         <ChatPanel aiEndpoint={aiEndpoint} aiStreamEndpoint={aiStreamEndpoint} className="flex-1 overflow-hidden" />
       ) : (
-        <PropertiesPanel className="flex-1 overflow-hidden" />
+        <PropertiesPanel className="flex-1 min-h-0" />
       )}
     </div>
   );

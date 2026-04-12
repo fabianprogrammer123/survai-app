@@ -149,4 +149,33 @@ test.describe('/test editor — smoke', () => {
       fullPage: true,
     });
   });
+
+  test('properties panel scrolls when element has many properties', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByText(/Checkboxes/i).first().click();
+
+    // Click the added question to open its properties
+    await page.locator('.survey-card').last().click({ timeout: 5000 }).catch(() => {});
+    await page.getByRole('button', { name: /Properties/i }).click().catch(() => {});
+
+    // The properties panel root must have an inner scrollable container
+    const panel = page.locator('[data-properties-panel="true"]');
+    await expect(panel).toBeVisible();
+
+    // computed overflow-y must be auto or scroll
+    const overflowY = await panel.evaluate((el) => window.getComputedStyle(el).overflowY);
+    expect(['auto', 'scroll']).toContain(overflowY);
+
+    // clientHeight must be > 0 (sanity — panel is laid out)
+    const dims = await panel.evaluate((el) => ({
+      clientHeight: el.clientHeight,
+      scrollHeight: el.scrollHeight,
+    }));
+    expect(dims.clientHeight).toBeGreaterThan(0);
+  });
 });

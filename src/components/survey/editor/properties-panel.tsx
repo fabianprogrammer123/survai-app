@@ -146,7 +146,10 @@ export function PropertiesPanel({ className }: Props) {
   }
 
   return (
-    <div className={cn('overflow-y-auto', className)}>
+    <div
+      data-properties-panel="true"
+      className={cn('h-full overflow-y-auto', className)}
+    >
       {stylePickerUI}
 
       <div className="px-4 py-3.5 border-b border-border/60 flex items-center justify-between">
