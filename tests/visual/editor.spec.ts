@@ -207,4 +207,33 @@ test.describe('/test editor — smoke', () => {
     await page.getByText(/Checkboxes/i).first().click();
     await expect(page.locator('[data-element-type-badge="checkboxes"]')).toBeVisible();
   });
+
+  test('linear scale distributes numbers evenly between labels', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByText(/Linear Scale/i).first().click();
+
+    const row = page.locator('[data-linear-scale-row="true"]').last();
+    await expect(row).toBeVisible();
+
+    const radios = row.locator('[data-slot="radio-group-item"]');
+    const count = await radios.count();
+    expect(count).toBeGreaterThanOrEqual(3);
+
+    const firstBox = await radios.first().boundingBox();
+    const lastBox = await radios.last().boundingBox();
+    const rowBox = await row.boundingBox();
+    expect(firstBox).not.toBeNull();
+    expect(lastBox).not.toBeNull();
+    expect(rowBox).not.toBeNull();
+    if (firstBox && lastBox && rowBox) {
+      // Last radio must be in the right half of the row (sanity: distributed, not clustered left)
+      const rowCenter = rowBox.x + rowBox.width / 2;
+      expect(lastBox.x).toBeGreaterThan(rowCenter);
+    }
+  });
 });

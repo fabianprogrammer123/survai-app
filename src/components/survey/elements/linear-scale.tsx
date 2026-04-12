@@ -49,15 +49,15 @@ export function LinearScaleRenderer({ element, mode, value, onChange, onUpdate }
           )}
         </>
       )}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-4" data-linear-scale-row="true">
         {element.minLabel && (
-          <span className="text-sm text-muted-foreground">{element.minLabel}</span>
+          <span className="text-sm text-muted-foreground shrink-0">{element.minLabel}</span>
         )}
         <RadioGroup
           value={value?.toString() || ''}
           onValueChange={(v) => onChange?.(parseInt(v))}
           disabled={mode === 'editor'}
-          className="flex gap-2"
+          className="flex-1 flex justify-between gap-2"
         >
           {points.map((point) => (
             <div key={point} className="flex flex-col items-center gap-1">
@@ -69,7 +69,7 @@ export function LinearScaleRenderer({ element, mode, value, onChange, onUpdate }
           ))}
         </RadioGroup>
         {element.maxLabel && (
-          <span className="text-sm text-muted-foreground">{element.maxLabel}</span>
+          <span className="text-sm text-muted-foreground shrink-0">{element.maxLabel}</span>
         )}
       </div>
     </div>
