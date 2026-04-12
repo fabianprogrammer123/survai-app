@@ -47,7 +47,13 @@ export function EditorCanvas({ className }: Props) {
   const backgroundImage = useSurveyStore((s) => s.survey.settings.backgroundImage);
   const visualEffect = useSurveyStore((s) => s.survey.settings.visualEffect);
   const fontFamily = useSurveyStore((s) => s.survey.settings.fontFamily);
-  const layoutMode = useSurveyStore((s) => s.survey.settings.layoutMode) || 'scroll';
+  // Derive layoutMode from stylePreset when not explicitly set — protects
+  // surveys created before Plan B that have stylePreset: 'typeform' but no
+  // layoutMode, so they upgrade to one-at-a-time transparently.
+  const layoutMode = useSurveyStore((s) => {
+    if (s.survey.settings.layoutMode) return s.survey.settings.layoutMode;
+    return s.survey.settings.stylePreset === 'typeform' ? 'one-at-a-time' : 'scroll';
+  });
   const editorMode = useSurveyStore((s) => s.editorMode);
   const reorderElements = useSurveyStore((s) => s.reorderElements);
   const selectElement = useSurveyStore((s) => s.selectElement);

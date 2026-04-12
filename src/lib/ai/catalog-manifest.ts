@@ -54,7 +54,7 @@ const typeConstraints: Record<string, Record<string, unknown>> = {
 };
 
 export function buildCatalogManifest(): CatalogManifestEntry[] {
-  return CATALOG.map((entry) => ({
+  return CATALOG.filter((entry) => !entry.hidden).map((entry) => ({
     type: entry.type,
     label: entry.label,
     description: entry.description,

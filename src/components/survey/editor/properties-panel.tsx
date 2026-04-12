@@ -14,8 +14,8 @@ import { STYLE_OPTIONS, type SurveyStyle, type ColorMode } from '@/lib/survey/pr
 import { X, Trash2, Sun, Moon } from 'lucide-react';
 import type { ElementType, SurveyElement } from '@/types/survey';
 
-/** Element types that can be converted between (excludes layout types). */
-const QUESTION_TYPES = CATALOG.filter((c) => c.category !== 'layout');
+/** Element types that can be converted between (excludes layout types and hidden entries). */
+const QUESTION_TYPES = CATALOG.filter((c) => c.category !== 'layout' && !c.hidden);
 
 /** Build update fields for changing an element's type, preserving shared fields. */
 function buildTypeConversion(source: SurveyElement, targetType: ElementType): Partial<SurveyElement> {

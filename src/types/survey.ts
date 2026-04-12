@@ -126,6 +126,7 @@ export const DEFAULT_SETTINGS: SurveySettings = {
   confirmationMessage: 'Thank you for your response!',
   stylePreset: 'google-forms',
   colorMode: 'dark',
+  layoutMode: 'scroll',
 };
 
 export interface Survey {
