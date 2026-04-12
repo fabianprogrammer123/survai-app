@@ -105,4 +105,48 @@ test.describe('/test editor — smoke', () => {
     // Smoke: the survey card should be visible
     await expect(page.locator('.survey-card').first()).toBeVisible();
   });
+
+  test('typeform preset editor screenshot', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Typeform/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.screenshot({
+      path: 'tests/visual/.artifacts/05-typeform-editor.png',
+      fullPage: true,
+    });
+  });
+
+  test('editor after adding a short-text question', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    // Select short text from the element menu — use first match
+    await page.getByText(/Short Text/i).first().click();
+    await page.screenshot({
+      path: 'tests/visual/.artifacts/06-one-question.png',
+      fullPage: true,
+    });
+  });
+
+  test('properties panel render', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByText(/Short Text/i).first().click();
+    // Click the new question to select it (last card in the list)
+    await page.locator('.survey-card').last().click({ timeout: 5000 }).catch(() => {});
+    await page.getByRole('tab', { name: /Properties/i }).click({ timeout: 2000 }).catch(() => {});
+    await page.screenshot({
+      path: 'tests/visual/.artifacts/07-properties.png',
+      fullPage: true,
+    });
+  });
 });
