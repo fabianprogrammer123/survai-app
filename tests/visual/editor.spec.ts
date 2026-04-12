@@ -31,6 +31,10 @@ test.describe('/test editor — smoke', () => {
     );
     expect(fontFamily.toLowerCase()).not.toMatch(/times|(?<!sans-)serif\b/);
 
+    // The inline "Start with a template" block must not render in the blank-survey editor
+    await expect(page.getByText(/Start with a template/i)).toHaveCount(0);
+    await expect(page.getByText(/Pick a starting point/i)).toHaveCount(0);
+
     await page.screenshot({
       path: 'tests/visual/.artifacts/02-blank-editor.png',
       fullPage: true,

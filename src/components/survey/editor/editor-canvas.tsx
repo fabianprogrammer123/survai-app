@@ -21,7 +21,6 @@ import { useSurveyStore } from '@/lib/survey/store';
 import { SortableElement } from './sortable-element';
 import { AddElementButton } from './add-element-button';
 import { SurveyHeaderCard } from './survey-header-card';
-import { TemplateGallery } from './template-gallery';
 import { ElementRenderer } from '@/components/survey/elements/element-renderer';
 import { ResultsPanel } from '@/components/survey/results/results-panel';
 import { VoiceInterview } from '@/components/survey/voice-interview';
@@ -163,8 +162,6 @@ export function EditorCanvas({ className }: Props) {
             </DndContext>
 
             <AddElementButton />
-
-            {elements.length === 0 && <TemplateGallery />}
           </>
         )}
       </SurveyThemeProvider>
