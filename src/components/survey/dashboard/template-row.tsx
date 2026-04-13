@@ -46,7 +46,7 @@ export function TemplateRow({ onTemplateSelect, searchQuery }: TemplateRowProps)
 
   return (
     <section className="rounded-2xl bg-muted/20 border border-border/20 px-6 py-6">
-      <h2 className="text-sm font-medium font-outfit text-muted-foreground mb-4">Start a new form</h2>
+      <h2 className="text-sm font-medium text-muted-foreground mb-4">Start a new form</h2>
 
       <div className="flex gap-4 overflow-x-auto py-2 -mx-1 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {/* Blank form card */}
@@ -57,7 +57,7 @@ export function TemplateRow({ onTemplateSelect, searchQuery }: TemplateRowProps)
           <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
             <Plus className="h-7 w-7 text-white" />
           </div>
-          <span className="text-sm font-medium font-outfit text-white">Blank form</span>
+          <span className="text-sm font-medium text-white">Blank form</span>
         </button>
 
         {/* Template cards */}
@@ -73,7 +73,7 @@ export function TemplateRow({ onTemplateSelect, searchQuery }: TemplateRowProps)
                 <Icon className="h-5 w-5 text-primary" />
               </div>
               <div className="text-center">
-                <p className="text-xs font-medium font-outfit text-foreground line-clamp-1">{template.label}</p>
+                <p className="text-xs font-medium text-foreground line-clamp-1">{template.label}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">{template.estimatedTime}</p>
               </div>
             </button>

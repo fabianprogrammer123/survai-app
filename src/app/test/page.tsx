@@ -60,7 +60,7 @@ export default function TestDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background font-outfit">
+    <div className="min-h-screen bg-background font-survey-inter">
       <DashboardHeader
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}

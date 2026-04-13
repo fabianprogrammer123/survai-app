@@ -52,7 +52,7 @@ export const STYLE_PRESETS: Record<StylePreset, PresetConfig> = {
   'typeform-light': {
     label: 'Typeform',
     description: 'Bold and engaging',
-    fontFamily: 'dm-sans',
+    fontFamily: 'inter',
     layoutMode: 'one-at-a-time',
     cssVars: {
       '--sv-bg': '#fafaf7',
@@ -71,7 +71,7 @@ export const STYLE_PRESETS: Record<StylePreset, PresetConfig> = {
   'typeform-dark': {
     label: 'Typeform',
     description: 'Bold and engaging',
-    fontFamily: 'dm-sans',
+    fontFamily: 'inter',
     layoutMode: 'one-at-a-time',
     cssVars: {
       '--sv-bg': 'transparent',

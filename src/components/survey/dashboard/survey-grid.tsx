@@ -20,7 +20,7 @@ export function SurveyGrid({ surveys, searchQuery, onDuplicate, onDelete }: Surv
     <section>
       {filtered.length > 0 && (
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-medium font-outfit text-muted-foreground">Recent forms</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">Recent forms</h2>
         </div>
       )}
 
@@ -29,8 +29,8 @@ export function SurveyGrid({ surveys, searchQuery, onDuplicate, onDelete }: Surv
           <div className="h-14 w-14 rounded-2xl bg-muted/60 flex items-center justify-center mb-4">
             <FileText className="h-7 w-7 text-muted-foreground/50" />
           </div>
-          <p className="text-sm font-medium font-outfit text-foreground/60 mb-1">No surveys yet</p>
-          <p className="text-xs font-outfit text-muted-foreground/60">Create your first survey using a template above</p>
+          <p className="text-sm font-medium text-foreground/60 mb-1">No surveys yet</p>
+          <p className="text-xs text-muted-foreground/60">Create your first survey using a template above</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">

@@ -52,7 +52,7 @@ export function StyleSelectorDialog({ open, onOpenChange, templateId, onConfirm 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md font-outfit">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Choose a style</DialogTitle>
         </DialogHeader>

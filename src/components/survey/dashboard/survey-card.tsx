@@ -46,7 +46,7 @@ export function SurveyCard({ survey, onDuplicate, onDelete }: SurveyCardProps) {
           </>
         ) : (
           <div className="flex items-center justify-center h-full">
-            <p className="text-xs text-muted-foreground/50 font-outfit">Empty survey</p>
+            <p className="text-xs text-muted-foreground/50">Empty survey</p>
           </div>
         )}
 
@@ -58,7 +58,7 @@ export function SurveyCard({ survey, onDuplicate, onDelete }: SurveyCardProps) {
             title="Edit"
           >
             <Pencil className="h-4 w-4 text-white" />
-            <span className="text-[10px] font-medium font-outfit text-white/80">Edit</span>
+            <span className="text-[10px] font-medium text-white/80">Edit</span>
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); router.push(`/test/edit?id=${survey.id}`); }}
@@ -66,7 +66,7 @@ export function SurveyCard({ survey, onDuplicate, onDelete }: SurveyCardProps) {
             title="Insights"
           >
             <BarChart3 className="h-4 w-4 text-white" />
-            <span className="text-[10px] font-medium font-outfit text-white/80">Insights</span>
+            <span className="text-[10px] font-medium text-white/80">Insights</span>
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(survey.id); }}
@@ -74,7 +74,7 @@ export function SurveyCard({ survey, onDuplicate, onDelete }: SurveyCardProps) {
             title="Delete"
           >
             <Trash2 className="h-4 w-4 text-white" />
-            <span className="text-[10px] font-medium font-outfit text-white/80">Delete</span>
+            <span className="text-[10px] font-medium text-white/80">Delete</span>
           </button>
         </div>
       </div>
@@ -82,7 +82,7 @@ export function SurveyCard({ survey, onDuplicate, onDelete }: SurveyCardProps) {
       {/* Footer */}
       <div className="px-3.5 py-3 flex items-center justify-between">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium font-outfit text-foreground truncate">{survey.title}</p>
+          <p className="text-sm font-medium text-foreground truncate">{survey.title}</p>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-xs text-muted-foreground">{formatRelativeDate(survey.updatedAt)}</span>
             {survey.published ? (
