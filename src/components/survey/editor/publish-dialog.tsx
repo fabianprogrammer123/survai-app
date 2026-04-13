@@ -70,7 +70,27 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
     (el) => el && !['section_header', 'page_break', 'file_upload'].includes(el.type)
   ).length;
 
-  const surveyUrl = publishConfig.publicUrl || `${typeof window !== 'undefined' ? window.location.origin : ''}/s/${survey.id || nanoid(10)}`;
+  // Base64url-encode the current survey into a preview URL. This is the
+  // shippable-today share link — works cross-device without a backend.
+  // When Plan D lands, this will switch back to /s/{id} for persisted
+  // publishes, and publishConfig.publicUrl will override when set.
+  const surveyUrl = (() => {
+    if (publishConfig.publicUrl) return publishConfig.publicUrl;
+    if (typeof window === 'undefined') return '';
+    try {
+      const json = JSON.stringify(survey);
+      const bytes = new TextEncoder().encode(json);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const b64 = btoa(binary)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+      return `${window.location.origin}/s/preview/${b64}`;
+    } catch {
+      return `${window.location.origin}/s/${survey.id || nanoid(10)}`;
+    }
+  })();
 
   // ── Create ElevenLabs Agent ──
   const createVoiceAgent = useCallback(async () => {
@@ -421,6 +441,9 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
               </div>
               <p className="text-xs text-muted-foreground">
                 Respondents can fill out the survey via web form or start a voice conversation.
+              </p>
+              <p className="text-[11px] text-amber-600 dark:text-amber-400" data-preview-link-note="true">
+                Preview link: this is a shareable demo URL. Response collection requires a real backend (coming soon), so submissions won&apos;t appear in your dashboard yet.
               </p>
             </div>
 

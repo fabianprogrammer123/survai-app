@@ -313,4 +313,38 @@ test.describe('/test editor — smoke', () => {
       expect(lastBox.x).toBeGreaterThan(rowCenter);
     }
   });
+
+  test('publish dialog produces a working preview share URL', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+
+    // Give the survey a real title so we have something to assert on
+    const titleInput = page.locator('input[placeholder="Untitled Survey"]');
+    await titleInput.click();
+    await titleInput.fill('Preview test survey');
+
+    // Add one Short Text question
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByRole('menuitem', { name: /Short Text/i }).first().click();
+
+    // Open the publish dialog (toolbar Publish button)
+    await page.getByRole('button', { name: /^(Publish|Re-publish)$/i }).first().click();
+
+    // Switch to the Share tab where the survey link input lives
+    await page.getByRole('button', { name: /^Share$/i }).first().click();
+
+    // The share URL input should contain /s/preview/
+    const urlInput = page.locator('input[value*="/s/preview/"]').first();
+    await expect(urlInput).toBeVisible({ timeout: 5000 });
+    const shareUrl = await urlInput.inputValue();
+    expect(shareUrl).toMatch(/\/s\/preview\//);
+
+    // Navigate to the share URL and assert the survey renders
+    await page.goto(shareUrl);
+    await expect(page.locator('[data-preview-notice="true"]')).toBeVisible();
+    await expect(page.getByText(/Preview test survey/i)).toBeVisible();
+  });
 });
