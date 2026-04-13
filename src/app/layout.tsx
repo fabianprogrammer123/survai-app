@@ -155,14 +155,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`dark ${geistSans.variable} ${geistMono.variable} ${dmSans.variable} ${spaceGrotesk.variable} ${playfair.variable} ${jetbrainsMono.variable} ${outfit.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} ${dmSans.variable} ${spaceGrotesk.variable} ${playfair.variable} ${jetbrainsMono.variable} ${outfit.variable} antialiased`}>
+      <body className="font-sans antialiased">
         <TooltipProvider>
           {children}
         </TooltipProvider>
