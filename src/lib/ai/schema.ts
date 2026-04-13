@@ -77,6 +77,9 @@ const nullablePartialSettingsSchema = z.object({
   backgroundPrompt: z.string().nullable().optional().describe('DALL-E prompt for generating a background image. Keep it abstract and atmospheric.'),
   visualEffect: z.enum(['none', 'gradient-overlay', 'particles', 'glass-morphism', 'aurora']).nullable().optional().describe('CSS visual effect for the survey canvas'),
   fontFamily: z.enum(['inter', 'dm-sans', 'space-grotesk', 'playfair', 'jetbrains-mono']).nullable().optional().describe('Font family for the survey'),
+  stylePreset: z.enum(['google-forms', 'typeform']).nullable().optional().describe('Visual preset: google-forms (scroll list) or typeform (one question at a time)'),
+  colorMode: z.enum(['light', 'dark']).nullable().optional().describe('Light or dark color mode for the survey'),
+  layoutMode: z.enum(['scroll', 'one-at-a-time']).nullable().optional().describe('Layout mode — usually derived from stylePreset, only set explicitly for unusual combinations'),
 });
 
 // ---------------------------------------------------------------------------
