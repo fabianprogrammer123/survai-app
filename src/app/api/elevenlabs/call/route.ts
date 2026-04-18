@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { makeOutboundCall, getConversation } from '@/lib/elevenlabs/client';
+import { requireAuth } from '@/lib/api/require-auth';
 
 /**
  * POST /api/elevenlabs/call
  * Initiate a single outbound phone call for a survey.
  *
+ * Auth-gated: places an outbound call (cost).
+ *
  * Body: { agentId: string, phoneNumberId: string, toNumber: string }
  */
 export async function POST(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) return auth;
+
   try {
     const { agentId, phoneNumberId, toNumber } = (await req.json()) as {
       agentId: string;
@@ -52,8 +58,13 @@ export async function POST(req: NextRequest) {
 /**
  * GET /api/elevenlabs/call?conversationId=xxx
  * Get conversation details (transcript + extracted data).
+ *
+ * Auth-gated — owner-only read of conversation detail.
  */
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) return auth;
+
   try {
     const conversationId = req.nextUrl.searchParams.get('conversationId');
     if (!conversationId) {

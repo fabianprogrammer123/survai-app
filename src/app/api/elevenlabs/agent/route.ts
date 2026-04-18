@@ -2,15 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAgent, updateAgent, deleteAgent, getAgent } from '@/lib/elevenlabs/client';
 import { buildAgentConfig } from '@/lib/elevenlabs/agent-builder';
 import type { Survey } from '@/types/survey';
+import { requireAuth } from '@/lib/api/require-auth';
 
 /**
  * POST /api/elevenlabs/agent
  * Create an ElevenLabs Conversational AI agent from a survey definition.
  *
+ * Auth-gated: provisioning an agent costs quota.
+ *
  * Body: { survey: Survey, voiceId?: string }
  * Returns: { agentId: string, agent: object }
  */
 export async function POST(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) return auth;
+
   try {
     const { survey, voiceId } = (await req.json()) as {
       survey: Survey;
@@ -44,9 +50,14 @@ export async function POST(req: NextRequest) {
  * PATCH /api/elevenlabs/agent
  * Update an existing agent (e.g., when survey is edited after publishing).
  *
+ * Auth-gated.
+ *
  * Body: { agentId: string, survey: Survey, voiceId?: string }
  */
 export async function PATCH(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) return auth;
+
   try {
     const { agentId, survey, voiceId } = (await req.json()) as {
       agentId: string;
@@ -75,9 +86,14 @@ export async function PATCH(req: NextRequest) {
  * DELETE /api/elevenlabs/agent
  * Delete an ElevenLabs agent.
  *
+ * Auth-gated.
+ *
  * Body: { agentId: string }
  */
 export async function DELETE(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) return auth;
+
   try {
     const { agentId } = (await req.json()) as { agentId: string };
     if (!agentId) {
@@ -98,8 +114,13 @@ export async function DELETE(req: NextRequest) {
 /**
  * GET /api/elevenlabs/agent?agentId=xxx
  * Get agent details.
+ *
+ * Auth-gated — owner/admin tool, not a respondent surface.
  */
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) return auth;
+
   try {
     const agentId = req.nextUrl.searchParams.get('agentId');
     if (!agentId) {

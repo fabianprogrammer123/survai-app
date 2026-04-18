@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { requireAuth } from '@/lib/api/require-auth';
 
 // Placeholder lets `next build` succeed when OPENAI_API_KEY is only a
 // runtime secret. Handlers guard before making real calls.
@@ -8,6 +9,9 @@ const openai = new OpenAI({
 });
 
 export async function POST(req: Request) {
+  const auth = await requireAuth();
+  if (auth instanceof Response) return auth;
+
   try {
     const { prompt } = await req.json();
     if (!prompt) {

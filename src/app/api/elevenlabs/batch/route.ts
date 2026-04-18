@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { submitBatchCalls, getBatchCallStatus } from '@/lib/elevenlabs/client';
 import type { BatchCallRecipient } from '@/lib/elevenlabs/types';
+import { requireAuth } from '@/lib/api/require-auth';
 
 /**
  * POST /api/elevenlabs/batch
  * Submit a batch of outbound phone calls for a survey campaign.
+ *
+ * Auth-gated: high-cost route (batch telephony).
  *
  * Body: {
  *   name: string,
@@ -15,6 +18,9 @@ import type { BatchCallRecipient } from '@/lib/elevenlabs/types';
  * }
  */
 export async function POST(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) return auth;
+
   try {
     const body = (await req.json()) as {
       name: string;
@@ -76,8 +82,13 @@ export async function POST(req: NextRequest) {
 /**
  * GET /api/elevenlabs/batch?batchId=xxx
  * Get batch call status.
+ *
+ * Auth-gated.
  */
 export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) return auth;
+
   try {
     const batchId = req.nextUrl.searchParams.get('batchId');
     if (!batchId) {

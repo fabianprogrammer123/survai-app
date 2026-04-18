@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { SurveyElement } from '@/types/survey';
 import { nanoid } from 'nanoid';
 import { getAnthropic, FAST_MODEL } from '@/lib/anthropic';
+import { requireAuth } from '@/lib/api/require-auth';
 
 /**
  * POST /api/ai/responses
  * Generates realistic dummy survey responses using Claude Haiku 4.5.
  * Low-stakes task — fast + cheap model is the right pick here.
+ *
+ * Auth-gated: cost-engine route (calls Anthropic).
  */
 export async function POST(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) return auth;
+
   try {
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(

@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { synthesizeSpeech } from '@/lib/elevenlabs/client';
+import { requireAuth } from '@/lib/api/require-auth';
 
 /**
  * POST /api/elevenlabs/tts
  * Text-to-speech using ElevenLabs (replaces OpenAI TTS).
  *
+ * Auth-gated: per-character ElevenLabs cost. Respondent-side voice uses the
+ * signed-url flow (browser WebRTC), not this endpoint.
+ *
  * Body: { text: string, voiceId?: string }
  * Returns: audio/mpeg stream
  */
 export async function POST(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (auth instanceof Response) return auth;
+
   try {
     const { text, voiceId } = (await req.json()) as {
       text: string;
