@@ -11,6 +11,8 @@ import { ChatMessage } from './chat-message';
 import { ChatInputArea, type ChatInputAreaHandle } from './chat-input-area';
 import { VoiceInputButton } from './voice-input-button';
 import { VoiceModeOverlay } from './voice-mode-overlay';
+import { AiInspectorDrawer } from './ai-inspector-drawer';
+import { ChatPanelMenu } from './chat-panel-menu';
 import { buildProactiveGreeting } from '@/lib/survey/proactive-greeting';
 import { cn } from '@/lib/utils';
 import { nanoid } from 'nanoid';
@@ -70,6 +72,16 @@ export function ChatPanel({ className, aiEndpoint, aiStreamEndpoint }: Props) {
     ) {
       store.addChatMessage(buildProactiveGreeting());
       store.markProactiveGreetingSeeded();
+    }
+  }, []);
+
+  // Enable the AI Inspector when the URL carries ?inspector=1. Stays on for
+  // the session; the chat header toggle can override.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('inspector') === '1') {
+      useSurveyStore.getState().setInspectorEnabled(true);
     }
   }, []);
 
@@ -133,7 +145,9 @@ export function ChatPanel({ className, aiEndpoint, aiStreamEndpoint }: Props) {
   }
 
   return (
-    <div className={cn('flex flex-col', className)}>
+    <div className={cn('flex flex-col relative', className)}>
+      {/* Floating kebab menu: AI Inspector toggle lives here. */}
+      <ChatPanelMenu />
       {/* Messages area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         {chatMessages.length === 0 ? (
@@ -189,6 +203,8 @@ export function ChatPanel({ className, aiEndpoint, aiStreamEndpoint }: Props) {
           />
         }
       />
+
+      <AiInspectorDrawer />
     </div>
   );
 }

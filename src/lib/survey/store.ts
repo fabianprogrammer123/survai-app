@@ -87,6 +87,12 @@ interface SurveyEditorState {
   activeConversationId: string | null;
   isVoiceInterviewActive: boolean;
 
+  // ── AI Inspector ──
+  /** Whether the per-message AI Inspector affordance is visible. */
+  inspectorEnabled: boolean;
+  /** Currently-open trace id (drawer is open iff non-null). */
+  inspectorTraceId: string | null;
+
   // Survey mutations
   setSurvey: (survey: Survey) => void;
   setTitle: (title: string) => void;
@@ -156,6 +162,10 @@ interface SurveyEditorState {
   setActiveConversationId: (id: string | null) => void;
   setVoiceInterviewActive: (active: boolean) => void;
 
+  // AI Inspector
+  setInspectorEnabled: (enabled: boolean) => void;
+  setInspectorTraceId: (id: string | null) => void;
+
   // Persistence
   markClean: () => void;
 }
@@ -206,6 +216,10 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
   // Voice Interview
   activeConversationId: null,
   isVoiceInterviewActive: false,
+
+  // AI Inspector
+  inspectorEnabled: false,
+  inspectorTraceId: null,
 
   setSurvey: (survey) =>
     set({
@@ -432,6 +446,10 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
   // Voice Interview
   setActiveConversationId: (id) => set({ activeConversationId: id }),
   setVoiceInterviewActive: (active) => set({ isVoiceInterviewActive: active }),
+
+  // AI Inspector
+  setInspectorEnabled: (enabled) => set({ inspectorEnabled: enabled }),
+  setInspectorTraceId: (id) => set({ inspectorTraceId: id }),
 
   markClean: () => set({ isDirty: false }),
 }));
