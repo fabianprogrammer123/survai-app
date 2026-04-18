@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useSurveyStore } from '@/lib/survey/store';
 import { InsightCardGroup } from './insight-card-group';
 import { ProposalCard } from './proposal-card';
-import { Mic, HelpCircle } from 'lucide-react';
+import { Mic, HelpCircle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage as ChatMessageType, GenerationBatch, Proposal, ClarifyingQuestion } from '@/types/survey';
 
@@ -49,6 +49,8 @@ function renderSimpleMarkdown(text: string) {
 
 export function ChatMessage({ message, batch, onSuggestionClick, onProposalSelect }: ChatMessageProps) {
   const highlightedMessageId = useSurveyStore((s) => s.highlightedMessageId);
+  const inspectorEnabled = useSurveyStore((s) => s.inspectorEnabled);
+  const setInspectorTraceId = useSurveyStore((s) => s.setInspectorTraceId);
   const isHighlighted = highlightedMessageId === message.id;
   const isUser = message.role === 'user';
 
@@ -56,6 +58,7 @@ export function ChatMessage({ message, batch, onSuggestionClick, onProposalSelec
 
   const hasClarifyingQuestions = !isUser && message.clarifyingQuestions && message.clarifyingQuestions.length > 0;
   const hasProposals = !isUser && message.proposals && message.proposals.length > 0;
+  const showInspectorButton = !isUser && inspectorEnabled && Boolean(message.traceId);
 
   return (
     <div
@@ -138,9 +141,21 @@ export function ChatMessage({ message, batch, onSuggestionClick, onProposalSelec
           <InsightCardGroup batch={batch} />
         )}
 
-        <span className="block text-[10px] text-muted-foreground/60 px-1">
-          {timeText}
-        </span>
+        <div className="flex items-center gap-1.5 px-1">
+          <span className="text-[10px] text-muted-foreground/60">{timeText}</span>
+          {showInspectorButton && (
+            <button
+              type="button"
+              onClick={() => setInspectorTraceId(message.traceId ?? null)}
+              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/60 px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:text-foreground hover:border-border"
+              aria-label="Open AI Inspector for this message"
+              title="Open AI Inspector"
+            >
+              <Info className="h-2.5 w-2.5" />
+              inspect
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
