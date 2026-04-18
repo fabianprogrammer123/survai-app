@@ -36,6 +36,12 @@ function buildTypeConversion(source: SurveyElement, targetType: ElementType): Pa
     updates.max = src.max ?? 5;
     updates.minLabel = src.minLabel ?? 'Low';
     updates.maxLabel = src.maxLabel ?? 'High';
+  } else if (targetType === 'nps') {
+    const src = source as unknown as Record<string, unknown>;
+    updates.minLabel = src.minLabel ?? 'Not likely';
+    updates.maxLabel = src.maxLabel ?? 'Very likely';
+    updates.min = undefined;
+    updates.max = undefined;
   } else {
     updates.min = undefined;
     updates.max = undefined;
@@ -420,6 +426,32 @@ export function PropertiesPanel({ className }: Props) {
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* NPS labels */}
+        {element.type === 'nps' && (
+          <>
+            <Separator />
+            <div className="space-y-4">
+              <Label className="text-xs font-medium uppercase text-muted-foreground">NPS Labels</Label>
+              <div className="space-y-2">
+                <Label className="text-xs">Min Label (0)</Label>
+                <Input
+                  value={element.minLabel || ''}
+                  onChange={(e) => updateElement(element.id, { minLabel: e.target.value } as Partial<SurveyElement>)}
+                  placeholder="Not likely"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Max Label (10)</Label>
+                <Input
+                  value={element.maxLabel || ''}
+                  onChange={(e) => updateElement(element.id, { maxLabel: e.target.value } as Partial<SurveyElement>)}
+                  placeholder="Very likely"
+                />
               </div>
             </div>
           </>

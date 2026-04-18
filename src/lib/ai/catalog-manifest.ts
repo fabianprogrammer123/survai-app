@@ -38,6 +38,10 @@ const typeProperties: Record<string, PropertySpec[]> = {
     { name: 'maxLabel', type: 'string', required: false },
     { name: 'mode', type: 'string', required: false, description: "'discrete' or 'continuous' — discrete renders radio dots, continuous renders a slider" },
   ],
+  nps: [
+    { name: 'minLabel', type: 'string', required: false, description: "Label under 0 (default 'Not likely')" },
+    { name: 'maxLabel', type: 'string', required: false, description: "Label under 10 (default 'Very likely')" },
+  ],
   date: [],
   file_upload: [
     { name: 'maxFiles', type: 'number', required: false },

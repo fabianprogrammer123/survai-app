@@ -141,6 +141,13 @@ function buildElement(
         minLabel: d.minLabel,
         maxLabel: d.maxLabel,
       };
+    case 'nps':
+      return {
+        ...base,
+        type: 'nps',
+        minLabel: d.minLabel ?? 'Not likely',
+        maxLabel: d.maxLabel ?? 'Very likely',
+      };
     case 'date':
       return { ...base, type: 'date' };
     case 'file_upload':

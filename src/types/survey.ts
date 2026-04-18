@@ -5,6 +5,7 @@ export const ELEMENT_TYPES = [
   'checkboxes',
   'dropdown',
   'linear_scale',
+  'nps',
   'date',
   'file_upload',
   'section_header',
@@ -72,6 +73,14 @@ export interface LinearScaleElement extends BaseElement, WithScale {
   mode?: 'discrete' | 'continuous';
 }
 
+export interface NpsElement extends BaseElement {
+  type: 'nps';
+  /** Default: "Not likely" */
+  minLabel?: string;
+  /** Default: "Very likely" */
+  maxLabel?: string;
+}
+
 export interface DateElement extends BaseElement {
   type: 'date';
 }
@@ -97,6 +106,7 @@ export type SurveyElement =
   | CheckboxesElement
   | DropdownElement
   | LinearScaleElement
+  | NpsElement
   | DateElement
   | FileUploadElement
   | SectionHeaderElement

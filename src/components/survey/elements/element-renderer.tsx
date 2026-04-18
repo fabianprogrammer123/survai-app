@@ -5,6 +5,7 @@ import { MultipleChoiceRenderer } from './multiple-choice';
 import { CheckboxesRenderer } from './checkboxes';
 import { DropdownRenderer } from './dropdown-element';
 import { LinearScaleRenderer } from './linear-scale';
+import { NpsRenderer } from './nps';
 import { DateRenderer } from './date-element';
 import { FileUploadRenderer } from './file-upload';
 import { SectionHeaderRenderer } from './section-header';
@@ -27,6 +28,7 @@ const RENDERERS: Record<string, React.ComponentType<any>> = {
   checkboxes: CheckboxesRenderer,
   dropdown: DropdownRenderer,
   linear_scale: LinearScaleRenderer,
+  nps: NpsRenderer,
   date: DateRenderer,
   file_upload: FileUploadRenderer,
   section_header: SectionHeaderRenderer,

@@ -11,6 +11,7 @@ import {
   Upload,
   Heading,
   Minus,
+  Heart,
 } from 'lucide-react';
 import { type LucideIcon } from 'lucide-react';
 
@@ -109,6 +110,22 @@ export const CATALOG: CatalogEntry[] = [
       maxLabel: 'High',
       mode: 'discrete' as const,
       required: false,
+    }),
+  },
+  {
+    type: 'nps',
+    label: 'NPS',
+    description: 'Net Promoter Score 0-10 with colored zones',
+    icon: Heart,
+    category: 'other',
+    defaultElement: () => ({
+      id: `el_${nanoid(8)}`,
+      type: 'nps' as const,
+      title: 'How likely are you to recommend us?',
+      description: '',
+      required: false,
+      minLabel: 'Not likely',
+      maxLabel: 'Very likely',
     }),
   },
   {
