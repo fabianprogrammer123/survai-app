@@ -51,7 +51,7 @@ jobs:
             --timeout 120 \
             --project survai-app \
             --set-env-vars "NEXT_PUBLIC_SUPABASE_URL=https://shgsuahugiiuyopwyxtp.supabase.co,NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoZ3N1YWh1Z2lpdXlvcHd5eHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0Njc0MTgsImV4cCI6MjA5MjA0MzQxOH0.fYpuzVnhhIy3sICHVLaEcXgT3MtAV1r4O-QqaTMHEvY" \
-            --set-secrets "OPENAI_API_KEY=openai-api-key:latest,ELEVENLABS_API_KEY=elevenlabs-api-key:latest,ANTHROPIC_API_KEY=anthropic-api-key:latest"
+            --set-secrets "OPENAI_API_KEY=openai-api-key:latest,ELEVENLABS_API_KEY=elevenlabs-api-key:latest,ANTHROPIC_API_KEY=anthropic-api-key:latest,ELEVENLABS_WEBHOOK_SECRET=elevenlabs-webhook-secret:latest"
 
       - name: Smoke test
         run: |

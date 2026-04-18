@@ -2,21 +2,59 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dataCollectionToAnswers } from '@/lib/elevenlabs/agent-builder';
 import { createServiceClient } from '@/lib/supabase/server';
 import type { WebhookTranscriptionPayload } from '@/lib/elevenlabs/types';
+import { verifyElevenLabsSignature } from '@/lib/api/hmac';
+import { log } from '@/lib/log';
 
 /**
  * POST /api/webhooks/elevenlabs
  * Receives post-call webhooks from ElevenLabs after a conversation ends.
  * Works for both phone calls and web-based voice interviews.
  *
+ * Signature-verified via HMAC-SHA256 against ELEVENLABS_WEBHOOK_SECRET.
+ * Unsigned / misconfigured requests are rejected before any DB work.
+ *
  * After saving the response, attempts to link it to a guest record
  * and generate a short profile summary.
  */
 
 export async function POST(req: NextRequest) {
-  try {
-    const payload = (await req.json()) as WebhookTranscriptionPayload;
+  // Read the raw body once — HMAC is over the exact bytes, so we can't
+  // use req.json() (which would re-serialize with unknown whitespace).
+  const rawBody = await req.text();
 
-    console.log(`[ElevenLabs Webhook] type=${payload.type} conversation=${payload.data?.conversation_id}`);
+  const secret = process.env.ELEVENLABS_WEBHOOK_SECRET;
+  if (!secret) {
+    log.error({ event: 'webhook.elevenlabs.missing_secret' });
+    return NextResponse.json(
+      { error: 'Webhook secret not configured' },
+      { status: 500 }
+    );
+  }
+
+  const signature = req.headers.get('elevenlabs-signature');
+  if (!verifyElevenLabsSignature({ signatureHeader: signature, rawBody, secret })) {
+    log.warn({
+      event: 'webhook.elevenlabs.invalid_signature',
+      hasHeader: Boolean(signature),
+      ip: req.headers.get('x-forwarded-for') ?? null,
+    });
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+  }
+
+  let payload: WebhookTranscriptionPayload;
+  try {
+    payload = JSON.parse(rawBody) as WebhookTranscriptionPayload;
+  } catch {
+    log.warn({ event: 'webhook.elevenlabs.invalid_json' });
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  try {
+    log.info({
+      event: 'webhook.elevenlabs.received',
+      payloadType: payload.type,
+      conversationId: payload.data?.conversation_id,
+    });
 
     if (payload.type === 'post_call_transcription') {
       const { data } = payload;
