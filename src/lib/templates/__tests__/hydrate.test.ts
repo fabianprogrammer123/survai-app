@@ -34,4 +34,25 @@ describe('hydrateBlueprint', () => {
     expect(result.errors[0]).toContain('this_block_does_not_exist');
   });
 
+  it('tolerates null/undefined entries in blocks[] without crashing and never emits sparse elements', () => {
+    // Guard against the root cause hypothesis from
+    // memory/project_undefined_elements_rootcause: even if a malformed block
+    // slips past schema validation (e.g. a relaxed future schema or a
+    // streaming path that bypasses it), hydration must not crash and must
+    // not emit undefined/null elements that downstream crashes on.
+    const result = hydrateBlueprint({
+      title: 'Test',
+      description: 'desc',
+      blocks: [
+        { blockId: 'nps_score' },
+        null as unknown as { blockId: string },
+        undefined as unknown as { blockId: string },
+        { blockId: 'open_feedback' },
+      ],
+    });
+
+    expect(result.elements).toHaveLength(2);
+    expect(result.elements.every((el) => el != null && typeof el.type === 'string')).toBe(true);
+    expect(result.errors.length).toBeGreaterThanOrEqual(1);
+  });
 });
