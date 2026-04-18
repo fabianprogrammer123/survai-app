@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { synthesizeSpeech } from '@/lib/elevenlabs/client';
 import { requireAuth } from '@/lib/api/require-auth';
+import { log } from '@/lib/log';
 
 /**
  * POST /api/elevenlabs/tts
@@ -38,7 +39,10 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('ElevenLabs TTS error:', error);
+    log.error({
+      event: 'elevenlabs.tts.failed',
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'TTS synthesis failed' },
       { status: 500 }

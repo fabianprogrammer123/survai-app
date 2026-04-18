@@ -195,7 +195,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('[ElevenLabs Webhook] Error:', error);
+    log.error({
+      event: 'webhook.elevenlabs.unhandled',
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ received: true, error: 'Processing failed' });
   }
 }
@@ -233,7 +236,11 @@ async function linkResponseToGuest(
     });
 
     if (!matchedGuest) {
-      console.log(`[ElevenLabs Webhook] Could not match conversation to a guest`);
+      log.info({
+        event: 'webhook.elevenlabs.guest_unmatched',
+        surveyId,
+        responseId,
+      });
       return;
     }
 
@@ -250,9 +257,19 @@ async function linkResponseToGuest(
       })
       .eq('id', matchedGuest.id);
 
-    console.log(`[ElevenLabs Webhook] Linked response to guest "${matchedGuest.name}"`);
+    log.info({
+      event: 'webhook.elevenlabs.guest_linked',
+      surveyId,
+      responseId,
+      guestId: matchedGuest.id,
+    });
   } catch (err) {
-    console.warn('[ElevenLabs Webhook] Guest linking failed:', err);
+    log.warn({
+      event: 'webhook.elevenlabs.guest_link_failed',
+      surveyId,
+      responseId,
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 
@@ -308,7 +325,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ error: 'Provide conversationId or surveyId' }, { status: 400 });
   } catch (error) {
-    console.error('[ElevenLabs Webhook GET] Error:', error);
+    log.error({
+      event: 'webhook.elevenlabs.get_failed',
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ error: 'Failed to fetch responses' }, { status: 500 });
   }
 }

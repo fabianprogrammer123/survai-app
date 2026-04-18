@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { requireAuth } from '@/lib/api/require-auth';
+import { log } from '@/lib/log';
 
 // Placeholder lets `next build` succeed when OPENAI_API_KEY is only a
 // runtime secret. Handlers guard before making real calls.
@@ -31,8 +32,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No image URL returned' }, { status: 502 });
     }
     return NextResponse.json({ url });
-  } catch (error: any) {
-    console.error('Image generation error:', error);
-    return NextResponse.json({ error: error.message || 'Image generation failed' }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    log.error({ event: 'ai.image.generate_failed', error: msg });
+    return NextResponse.json({ error: msg || 'Image generation failed' }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { submitBatchCalls, getBatchCallStatus } from '@/lib/elevenlabs/client';
 import type { BatchCallRecipient } from '@/lib/elevenlabs/types';
 import { requireAuth } from '@/lib/api/require-auth';
+import { log } from '@/lib/log';
 
 /**
  * POST /api/elevenlabs/batch
@@ -71,7 +72,10 @@ export async function POST(req: NextRequest) {
       status: result.status,
     });
   } catch (error) {
-    console.error('Failed to submit batch calls:', error);
+    log.error({
+      event: 'elevenlabs.batch.submit_failed',
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to submit batch calls' },
       { status: 500 }
@@ -106,7 +110,10 @@ export async function GET(req: NextRequest) {
       name: result.name,
     });
   } catch (error) {
-    console.error('Failed to get batch status:', error);
+    log.error({
+      event: 'elevenlabs.batch.status_failed',
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to get batch status' },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { makeOutboundCall, getConversation } from '@/lib/elevenlabs/client';
 import { requireAuth } from '@/lib/api/require-auth';
+import { log } from '@/lib/log';
 
 /**
  * POST /api/elevenlabs/call
@@ -47,7 +48,10 @@ export async function POST(req: NextRequest) {
       status: result.status,
     });
   } catch (error) {
-    console.error('Failed to make outbound call:', error);
+    log.error({
+      event: 'elevenlabs.call.outbound_failed',
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to make call' },
       { status: 500 }
@@ -78,7 +82,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ conversation });
   } catch (error) {
-    console.error('Failed to get conversation:', error);
+    log.error({
+      event: 'elevenlabs.call.get_conversation_failed',
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to get conversation' },
       { status: 500 }

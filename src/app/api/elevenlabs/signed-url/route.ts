@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSignedUrl } from '@/lib/elevenlabs/client';
+import { log } from '@/lib/log';
 
 /**
  * GET /api/elevenlabs/signed-url?agentId=xxx
@@ -20,7 +21,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({ signedUrl: signed_url });
   } catch (error) {
-    console.error('Failed to get signed URL:', error);
+    log.error({
+      event: 'elevenlabs.signed_url.failed',
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to get signed URL' },
       { status: 500 }

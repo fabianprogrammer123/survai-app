@@ -3,6 +3,7 @@ import type { SurveyElement } from '@/types/survey';
 import { nanoid } from 'nanoid';
 import { getAnthropic, FAST_MODEL } from '@/lib/anthropic';
 import { requireAuth } from '@/lib/api/require-auth';
+import { log } from '@/lib/log';
 
 /**
  * POST /api/ai/responses
@@ -145,7 +146,10 @@ Guidelines:
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      console.error('Failed to parse AI response:', cleaned.slice(0, 500));
+      log.error({
+        event: 'ai.responses.parse_failed',
+        sample: cleaned.slice(0, 500),
+      });
       return NextResponse.json({ error: 'Invalid AI response format' }, { status: 502 });
     }
 
@@ -166,7 +170,10 @@ Guidelines:
 
     return NextResponse.json({ responses });
   } catch (error) {
-    console.error('Response generation error:', error);
+    log.error({
+      event: 'ai.responses.generate_failed',
+      error: error instanceof Error ? error.message : String(error),
+    });
     const msg = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json({ error: msg }, { status: 500 });
   }

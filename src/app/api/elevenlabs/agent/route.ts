@@ -3,6 +3,7 @@ import { createAgent, updateAgent, deleteAgent, getAgent } from '@/lib/elevenlab
 import { buildAgentConfig } from '@/lib/elevenlabs/agent-builder';
 import type { Survey } from '@/types/survey';
 import { requireAuth } from '@/lib/api/require-auth';
+import { log } from '@/lib/log';
 
 /**
  * POST /api/elevenlabs/agent
@@ -38,7 +39,10 @@ export async function POST(req: NextRequest) {
       agent,
     });
   } catch (error) {
-    console.error('Failed to create ElevenLabs agent:', error);
+    log.error({
+      event: 'elevenlabs.agent.create_failed',
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to create agent' },
       { status: 500 }
@@ -74,7 +78,10 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ agentId: agent.agent_id, agent });
   } catch (error) {
-    console.error('Failed to update ElevenLabs agent:', error);
+    log.error({
+      event: 'elevenlabs.agent.update_failed',
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to update agent' },
       { status: 500 }
@@ -103,7 +110,10 @@ export async function DELETE(req: NextRequest) {
     await deleteAgent(agentId);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Failed to delete ElevenLabs agent:', error);
+    log.error({
+      event: 'elevenlabs.agent.delete_failed',
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to delete agent' },
       { status: 500 }
@@ -130,7 +140,10 @@ export async function GET(req: NextRequest) {
     const agent = await getAgent(agentId);
     return NextResponse.json({ agent });
   } catch (error) {
-    console.error('Failed to get ElevenLabs agent:', error);
+    log.error({
+      event: 'elevenlabs.agent.get_failed',
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to get agent' },
       { status: 500 }
