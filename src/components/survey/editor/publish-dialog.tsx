@@ -424,19 +424,54 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
                 <Link2 className="h-3.5 w-3.5" />
                 Survey Link
               </label>
-              <div className="flex gap-2">
-                <Input
+              {/* Compact link display + primary Copy button. Full URL is
+                  kept in a hidden data attribute + input for programmatic
+                  access (tests, QR code, etc.) while the visible chunk is
+                  a short truncated string so multi-KB base64 preview URLs
+                  no longer blow out the dialog. */}
+              <div
+                className="flex items-center gap-2"
+                data-share-link-row="true"
+              >
+                <div
+                  className="flex-1 min-w-0 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground truncate"
+                  data-share-link-display="true"
+                  title={surveyUrl}
+                >
+                  {(() => {
+                    const m = surveyUrl.match(/^(https?:\/\/[^/]+\/s\/preview\/)(.+)$/);
+                    if (m) {
+                      const [, origin, b64] = m;
+                      if (b64.length > 18) {
+                        return `${origin}${b64.slice(0, 10)}...${b64.slice(-6)}`;
+                      }
+                    }
+                    return surveyUrl;
+                  })()}
+                </div>
+                <input
+                  type="hidden"
                   readOnly
                   value={surveyUrl}
-                  className="text-xs font-mono bg-muted/30"
+                  data-share-link-value="true"
                 />
                 <Button
-                  variant="outline"
-                  size="icon"
+                  variant="default"
+                  size="sm"
                   onClick={handleCopyLink}
                   className="shrink-0"
                 >
-                  {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  {copied ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 mr-1.5" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Link2 className="h-3.5 w-3.5 mr-1.5" />
+                      Copy link
+                    </>
+                  )}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">

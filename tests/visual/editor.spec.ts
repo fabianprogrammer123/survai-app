@@ -386,11 +386,14 @@ test.describe('/test editor — smoke', () => {
     // Switch to the Share tab where the survey link input lives
     await page.getByRole('button', { name: /^Share$/i }).first().click();
 
-    // The share URL input should contain /s/preview/
-    const urlInput = page.locator('input[value*="/s/preview/"]').first();
-    await expect(urlInput).toBeVisible({ timeout: 5000 });
+    // The hidden full-URL input should carry the real preview URL (used
+    // as the canonical source for copy/QR/email). The visible display
+    // is a truncated summary to keep the dialog layout compact.
+    const urlInput = page.locator('[data-share-link-value="true"]').first();
+    await expect(urlInput).toBeAttached({ timeout: 5000 });
     const shareUrl = await urlInput.inputValue();
     expect(shareUrl).toMatch(/\/s\/preview\//);
+    await expect(page.locator('[data-share-link-display="true"]').first()).toBeVisible();
 
     // Navigate to the share URL and assert the survey renders
     await page.goto(shareUrl);
@@ -628,6 +631,35 @@ test.describe('/test editor — smoke', () => {
       .first();
     await strictBtn.click();
     await expect(strictBtn).toHaveClass(/shadow-sm/);
+  });
+
+  test('publish dialog shows truncated URL + Copy button', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    // Open publish dialog + Share tab
+    await page.getByRole('button', { name: /^(Publish|Re-publish)$/i }).first().click();
+    await page.getByRole('button', { name: /^Share$/i }).first().click();
+    // The Copy-link button should be visible
+    const copy = page.getByRole('button', { name: /Copy/i }).first();
+    await expect(copy).toBeVisible({ timeout: 5000 });
+  });
+
+  test('slider element is draggable in editor mode', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByRole('menuitem', { name: /Slider/i }).first().click();
+    const slider = page.locator('input[type="range"]').first();
+    await expect(slider).toBeVisible();
+    // The slider should NOT be disabled
+    const isDisabled = await slider.evaluate((el: HTMLInputElement) => el.disabled);
+    expect(isDisabled).toBe(false);
   });
 
   test('page_break actually paginates the respondent view', async ({ page }) => {

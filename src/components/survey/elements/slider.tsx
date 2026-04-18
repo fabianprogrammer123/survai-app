@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { SliderElement, SurveyElement } from '@/types/survey';
 import { Label } from '@/components/ui/label';
 import { ElementMode } from './element-renderer';
@@ -14,9 +15,15 @@ interface Props {
 }
 
 export function SliderRenderer({ element, mode, value, onChange, onUpdate }: Props) {
-  const disabled = mode === 'editor';
+  // Editor-mode preview value — lets the user drag the thumb to verify
+  // the visual while building the form. NOT persisted on the element.
+  // Respondent modes ('view' / embed) use the controlled `value` prop.
+  const [previewValue, setPreviewValue] = useState<number>(
+    value ?? element.min
+  );
+  const isEditor = mode === 'editor';
   const step = element.step ?? 1;
-  const current = value ?? element.min;
+  const current = isEditor ? previewValue : value ?? element.min;
 
   return (
     <div className="space-y-2 group">
@@ -76,9 +83,15 @@ export function SliderRenderer({ element, mode, value, onChange, onUpdate }: Pro
               max={element.max}
               step={step}
               value={current}
-              disabled={disabled}
-              onChange={(e) => onChange?.(parseFloat(e.target.value))}
-              className="w-full accent-primary cursor-pointer disabled:cursor-default"
+              onChange={(e) => {
+                const next = parseFloat(e.target.value);
+                if (isEditor) {
+                  setPreviewValue(next);
+                } else {
+                  onChange?.(next);
+                }
+              }}
+              className="w-full accent-primary cursor-pointer"
               aria-label={element.title}
               data-slider-input="true"
             />
