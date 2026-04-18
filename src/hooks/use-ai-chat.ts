@@ -247,6 +247,13 @@ async function handleStreamingResponse(
     allElements: SurveyElement[];
   } | null = null;
 
+  // Stash for the server-emitted trace_id; arrives as the final SSE event.
+  // When a non-generate result event arrives first, we need to attach the
+  // traceId to that assistant message, so we cache the message id and patch
+  // it once trace_id lands.
+  let pendingTraceMessageId: string | null = null;
+  let serverTraceId: string | null = null;
+
   for await (const { event, data } of parseSSE(res)) {
     const store = useSurveyStore.getState();
 
@@ -256,15 +263,20 @@ async function handleStreamingResponse(
         if (traceId) appendTraceEvent(traceId, { ts: now(), type: 'status', data: { text: data.text } });
         break;
 
-      case 'result':
+      case 'result': {
         // Non-generate intents arrive as a single result event
         if (traceId) {
           appendTraceEvent(traceId, { ts: now(), type: 'intent_classified', data: { intent: data.intent, message: data.message } });
           appendTraceEvent(traceId, { ts: now(), type: 'ai_response_raw', data });
           updateTrace(traceId, { intent: data.intent as AITrace['intent'], assistantMessage: data.message as string });
         }
-        handleNonGenerateResult(data, traceId);
+        const attachedId = handleNonGenerateResult(data, traceId);
+        if (attachedId) {
+          pendingTraceMessageId = attachedId;
+          if (serverTraceId) patchMessageTraceId(attachedId, serverTraceId);
+        }
         break;
+      }
 
       case 'generation_start':
         // Clear canvas, set metadata, start streaming
@@ -344,6 +356,10 @@ async function handleStreamingResponse(
             generationBatchId: batchId,
           });
 
+          // Remember this message id so the later trace_id event can attach to it.
+          pendingTraceMessageId = messageId;
+          if (serverTraceId) patchMessageTraceId(messageId, serverTraceId);
+
           // Background image
           const bgPrompt = useSurveyStore.getState().survey.settings.backgroundPrompt;
           if (bgPrompt) generateBackgroundImage(bgPrompt);
@@ -354,6 +370,16 @@ async function handleStreamingResponse(
         }});
         break;
       }
+
+      case 'trace_id':
+        // Final event from the server — the persisted ai_traces row id. Attach
+        // it to the most-recent assistant message so the AI Inspector button
+        // opens the right trace. Null = persist failed; leave the message as-is.
+        serverTraceId = (data?.traceId as string | null) ?? null;
+        if (serverTraceId && pendingTraceMessageId) {
+          patchMessageTraceId(pendingTraceMessageId, serverTraceId);
+        }
+        break;
 
       case 'trace':
         // Server-side trace data (token usage, raw response, model info)
@@ -449,6 +475,7 @@ async function handleStandardResponse(
       content: data.message,
       timestamp: new Date().toISOString(),
       generationBatchId: batchId,
+      traceId: typeof data.traceId === 'string' ? data.traceId : undefined,
     });
 
     const bgPrompt = survey.settings?.backgroundPrompt;
@@ -462,23 +489,44 @@ async function handleStandardResponse(
 // Shared handler for clarify, propose, command intents
 // ---------------------------------------------------------------------------
 
-function handleNonGenerateResult(data: Record<string, unknown>, traceId?: string) {
+/**
+ * Patch an already-added chat message with a traceId. Immutable-safe via
+ * setChatMessages because the store holds messages in an array.
+ */
+function patchMessageTraceId(messageId: string, traceId: string) {
+  const store = useSurveyStore.getState();
+  const next = store.chatMessages.map((m) =>
+    m.id === messageId ? { ...m, traceId } : m
+  );
+  store.setChatMessages(next);
+}
+
+/**
+ * Handles non-generate intents (clarify, propose, command) and returns the
+ * id of the assistant message that was added, so the caller can later
+ * attach a server-provided traceId to it. Returns null if no message was
+ * added (e.g. command without narration).
+ */
+function handleNonGenerateResult(data: Record<string, unknown>, traceId?: string): string | null {
   const store = useSurveyStore.getState();
 
   if (data.intent === 'clarify') {
-    // Support both old string[] and new {question, response}[] format
     const rawQuestions = (data.clarifyingQuestions as Array<string | ClarifyingQuestion>) || [];
     const clarifyingQuestions: ClarifyingQuestion[] = rawQuestions.map((q) =>
       typeof q === 'string' ? { question: q, response: q } : q
     );
 
+    const id = nanoid();
+    const traceIdFromServer = (data.traceId as string | undefined) ?? undefined;
     store.addChatMessage({
-      id: nanoid(),
+      id,
       role: 'assistant',
       content: data.message as string,
       timestamp: new Date().toISOString(),
       clarifyingQuestions,
+      traceId: traceIdFromServer,
     });
+    return id;
   } else if (data.intent === 'propose') {
     const proposals: Proposal[] = ((data.proposals as Array<Record<string, unknown>>) || []).map(
       (p) => ({
@@ -490,17 +538,20 @@ function handleNonGenerateResult(data: Record<string, unknown>, traceId?: string
       })
     );
 
+    const id = nanoid();
+    const traceIdFromServer = (data.traceId as string | undefined) ?? undefined;
     store.addChatMessage({
-      id: nanoid(),
+      id,
       role: 'assistant',
       content: data.message as string,
       timestamp: new Date().toISOString(),
       proposals,
+      traceId: traceIdFromServer,
     });
+    return id;
   } else if (data.intent === 'command') {
     const commands = (data.commands as UiCommand[]) || [];
 
-    // Extract publish_survey command if present
     const publishCmd = commands.find((c) => c.action === 'publish_survey');
     const otherCommands = commands.filter((c) => c.action !== 'publish_survey');
 
@@ -509,19 +560,24 @@ function handleNonGenerateResult(data: Record<string, unknown>, traceId?: string
       executeCommands(otherCommands);
     }
 
+    const id = nanoid();
+    const traceIdFromServer = (data.traceId as string | undefined) ?? undefined;
     store.addChatMessage({
-      id: nanoid(),
+      id,
       role: 'assistant',
       content: data.message as string,
       timestamp: new Date().toISOString(),
+      traceId: traceIdFromServer,
     });
 
-    // Fire-and-forget publish
     if (publishCmd) {
       if (traceId) appendTraceEvent(traceId, { ts: now(), type: 'publish_triggered', data: { respondentCount: publishCmd.respondentCount || 25 } });
       triggerPublish(publishCmd.respondentCount || 25);
     }
+
+    return id;
   }
+  return null;
 }
 
 /**
