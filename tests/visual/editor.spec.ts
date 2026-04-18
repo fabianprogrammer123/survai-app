@@ -774,6 +774,21 @@ test.describe('/test editor — smoke', () => {
     const items = ranking.locator('[data-ranking-item="true"]');
     expect(await items.count()).toBeGreaterThanOrEqual(3);
   });
+
+  test('Image Choice renders option grid', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByRole('menuitem', { name: /Image Choice/i }).first().click();
+    const grid = page.locator('[data-image-choice="true"]').last();
+    await expect(grid).toBeVisible();
+    // 2 default options, each with an aspect-square image slot
+    const cells = grid.locator('[data-image-choice-cell="true"]');
+    expect(await cells.count()).toBeGreaterThanOrEqual(2);
+  });
 });
 
 test.describe('/s/preview mobile', () => {

@@ -36,6 +36,10 @@ export interface BlockDefaults {
   scale?: 3 | 5 | 7;
   /** Ranking items (ordered list). */
   items?: string[];
+  /** Image Choice options with optional inline base64 images. */
+  imageOptions?: Array<{ label: string; imageDataUrl?: string }>;
+  /** Image Choice multi-select toggle. */
+  multiSelect?: boolean;
 }
 
 export interface BlockTemplate {

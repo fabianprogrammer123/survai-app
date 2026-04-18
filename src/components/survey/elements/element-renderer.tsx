@@ -11,6 +11,7 @@ import { MatrixSingleRenderer } from './matrix-single';
 import { MatrixMultiRenderer } from './matrix-multi';
 import { LikertRenderer } from './likert';
 import { RankingRenderer } from './ranking';
+import { ImageChoiceRenderer } from './image-choice';
 import { DateRenderer } from './date-element';
 import { FileUploadRenderer } from './file-upload';
 import { SectionHeaderRenderer } from './section-header';
@@ -39,6 +40,7 @@ const RENDERERS: Record<string, React.ComponentType<any>> = {
   matrix_multi: MatrixMultiRenderer,
   likert: LikertRenderer,
   ranking: RankingRenderer,
+  image_choice: ImageChoiceRenderer,
   date: DateRenderer,
   file_upload: FileUploadRenderer,
   section_header: SectionHeaderRenderer,

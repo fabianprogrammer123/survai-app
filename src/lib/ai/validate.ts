@@ -21,10 +21,22 @@ export function validateAgainstCatalog(elements: SurveyElement[]): ValidationRes
 
     // Phase 2: Constraint validation
     if ('options' in el && Array.isArray(el.options)) {
-      if (el.options.length < 2) {
-        errors.push(`Element ${el.id} (${el.type}) has fewer than 2 options — padded`);
-        while (el.options.length < 2) {
-          el.options.push(`Option ${el.options.length + 1}`);
+      if (el.type === 'image_choice') {
+        // image_choice stores options as objects; pad with labeled placeholders.
+        const imgOptions = el.options;
+        if (imgOptions.length < 2) {
+          errors.push(`Element ${el.id} (${el.type}) has fewer than 2 options — padded`);
+          while (imgOptions.length < 2) {
+            imgOptions.push({ label: `Option ${imgOptions.length + 1}` });
+          }
+        }
+      } else {
+        const stringOptions = el.options as string[];
+        if (stringOptions.length < 2) {
+          errors.push(`Element ${el.id} (${el.type}) has fewer than 2 options — padded`);
+          while (stringOptions.length < 2) {
+            stringOptions.push(`Option ${stringOptions.length + 1}`);
+          }
         }
       }
     }

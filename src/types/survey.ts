@@ -11,6 +11,7 @@ export const ELEMENT_TYPES = [
   'matrix_multi',
   'likert',
   'ranking',
+  'image_choice',
   'date',
   'file_upload',
   'section_header',
@@ -128,6 +129,14 @@ export interface RankingElement extends BaseElement {
   items: string[];
 }
 
+export interface ImageChoiceElement extends BaseElement {
+  type: 'image_choice';
+  /** Each option carries a label and an optional inline base64 image. */
+  options: Array<{ label: string; imageDataUrl?: string }>;
+  /** When true, respondents can pick multiple options. */
+  multiSelect?: boolean;
+}
+
 export interface DateElement extends BaseElement {
   type: 'date';
 }
@@ -159,6 +168,7 @@ export type SurveyElement =
   | MatrixMultiElement
   | LikertElement
   | RankingElement
+  | ImageChoiceElement
   | DateElement
   | FileUploadElement
   | SectionHeaderElement

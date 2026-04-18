@@ -19,6 +19,7 @@ import type {
   MatrixSingleElement,
   LikertElement,
   RankingElement,
+  ImageChoiceElement,
 } from '@/types/survey';
 
 /** Element types that can be converted between (excludes layout types and hidden entries). */
@@ -30,9 +31,17 @@ function buildTypeConversion(source: SurveyElement, targetType: ElementType): Pa
   const choiceTypes: ElementType[] = ['multiple_choice', 'checkboxes', 'dropdown'];
 
   if (choiceTypes.includes(targetType)) {
-    const existingOptions = 'options' in source ? (source as { options: string[] }).options : undefined;
-    updates.options = existingOptions && existingOptions.length > 0 ? existingOptions : ['Option 1', 'Option 2', 'Option 3'];
-  } else {
+    // Normalize options — image_choice stores objects; other choice types store strings.
+    const raw =
+      'options' in source
+        ? (source as { options: Array<string | { label: string }> }).options
+        : undefined;
+    const stringOpts = raw
+      ? raw.map((o) => (typeof o === 'string' ? o : o.label))
+      : undefined;
+    updates.options =
+      stringOpts && stringOpts.length > 0 ? stringOpts : ['Option 1', 'Option 2', 'Option 3'];
+  } else if (targetType !== 'image_choice') {
     updates.options = undefined;
     updates.allowOther = undefined;
   }
@@ -78,6 +87,16 @@ function buildTypeConversion(source: SurveyElement, targetType: ElementType): Pa
     updates.options = undefined;
     updates.columns = undefined;
     updates.rows = undefined;
+  } else if (targetType === 'image_choice') {
+    const src = source as unknown as Record<string, unknown>;
+    const existingOpts = src.options as Array<string | { label: string; imageDataUrl?: string }> | undefined;
+    updates.options = existingOpts
+      ? existingOpts.map((o) => (typeof o === 'string' ? { label: o } : o))
+      : [{ label: 'Option 1' }, { label: 'Option 2' }];
+    updates.multiSelect = src.multiSelect ?? false;
+    updates.rows = undefined;
+    updates.columns = undefined;
+    updates.items = undefined;
   } else {
     updates.min = undefined;
     updates.max = undefined;
@@ -101,6 +120,10 @@ function buildTypeConversion(source: SurveyElement, targetType: ElementType): Pa
 
   if (targetType !== 'ranking') {
     updates.items = undefined;
+  }
+
+  if (targetType !== 'image_choice') {
+    updates.multiSelect = undefined;
   }
 
   if (targetType !== 'short_text' && targetType !== 'long_text') {
@@ -411,8 +434,8 @@ export function PropertiesPanel({ className }: Props) {
           </div>
         )}
 
-        {/* Options editor for choice elements */}
-        {'options' in element && (
+        {/* Options editor for choice elements (image_choice has its own inline canvas editor) */}
+        {'options' in element && element.type !== 'image_choice' && (
           <>
             <Separator />
             <OptionsEditor
@@ -722,6 +745,22 @@ export function PropertiesPanel({ className }: Props) {
               >
                 + Add item
               </button>
+            </div>
+          </>
+        )}
+
+        {/* Image Choice: multiSelect toggle (option labels & images are edited inline on canvas) */}
+        {element.type === 'image_choice' && (
+          <>
+            <Separator />
+            <div className="flex items-center justify-between" data-image-choice-multi-select="true">
+              <Label className="text-sm">Allow multiple selections</Label>
+              <Switch
+                checked={!!(element as ImageChoiceElement).multiSelect}
+                onCheckedChange={(checked) =>
+                  updateElement(element.id, { multiSelect: checked } as Partial<SurveyElement>)
+                }
+              />
             </div>
           </>
         )}

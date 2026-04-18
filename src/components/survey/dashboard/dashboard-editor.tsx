@@ -59,7 +59,11 @@ function ChoiceBreakdown({
   responses: Response[];
 }) {
   const { answers } = getQuestionAnalysis(element, responses);
-  const options = 'options' in element ? element.options : [];
+  // Normalize options to string[] labels — image_choice stores option objects.
+  const rawOptions = 'options' in element ? element.options : [];
+  const options: string[] = (rawOptions as Array<string | { label: string }>).map((o) =>
+    typeof o === 'string' ? o : o.label,
+  );
 
   // Count occurrences
   const counts: Record<string, number> = {};

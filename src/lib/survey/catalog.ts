@@ -16,6 +16,7 @@ import {
   Grid3x3,
   ArrowUpDown,
   ListChecks,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { type LucideIcon } from 'lucide-react';
 
@@ -215,6 +216,22 @@ export const CATALOG: CatalogEntry[] = [
       description: '',
       required: false,
       items: ['Option A', 'Option B', 'Option C'],
+    }),
+  },
+  {
+    type: 'image_choice',
+    label: 'Image Choice',
+    description: 'Pick from image-based options',
+    icon: ImageIcon,
+    category: 'choice',
+    defaultElement: () => ({
+      id: `el_${nanoid(8)}`,
+      type: 'image_choice' as const,
+      title: 'Which do you prefer?',
+      description: '',
+      required: false,
+      options: [{ label: 'Option 1' }, { label: 'Option 2' }],
+      multiSelect: false,
     }),
   },
   {

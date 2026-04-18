@@ -98,6 +98,7 @@ Fonts: inter | dm-sans | space-grotesk | playfair | jetbrains-mono — match the
 - matrix_multi — pick multiple options per row from a shared list (checkboxes per cell; e.g. "For each product, check every channel where you use it").
 - likert — Strongly Disagree → Strongly Agree rating for multiple statements; scale is 3, 5, or 7 points.
 - ranking — user drag-reorders items to express preference order (e.g. "Rank these features by importance").
+- image_choice — pick from visual options; user attaches images per option in the editor. Set multiSelect=true to allow multiple picks.
 
 ## Behavior Rules
 - Execute exactly what the user asks. Do NOT add extra questions, suggest alternatives, or embellish.

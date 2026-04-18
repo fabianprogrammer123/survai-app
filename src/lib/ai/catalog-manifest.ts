@@ -65,6 +65,10 @@ const typeProperties: Record<string, PropertySpec[]> = {
   ranking: [
     { name: 'items', type: 'string[]', required: true, description: 'Items to rank (at least 2, unique labels)' },
   ],
+  image_choice: [
+    { name: 'options', type: 'string[]', required: true, description: 'Option labels (images attached separately by user)' },
+    { name: 'multiSelect', type: 'boolean', required: false, description: 'Allow multiple selections' },
+  ],
   date: [],
   file_upload: [
     { name: 'maxFiles', type: 'number', required: false },
@@ -83,6 +87,7 @@ const typeConstraints: Record<string, Record<string, unknown>> = {
   matrix_multi: { minRows: 1, minColumns: 2 },
   likert: { minRows: 1, scaleValues: [3, 5, 7] },
   ranking: { minItems: 2 },
+  image_choice: { minOptions: 2 },
 };
 
 export function buildCatalogManifest(): CatalogManifestEntry[] {

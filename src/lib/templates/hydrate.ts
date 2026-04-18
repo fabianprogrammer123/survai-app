@@ -186,6 +186,13 @@ function buildElement(
         type: 'ranking',
         items: d.items ?? ['Option A', 'Option B', 'Option C'],
       };
+    case 'image_choice':
+      return {
+        ...base,
+        type: 'image_choice',
+        options: d.imageOptions ?? [{ label: 'Option 1' }, { label: 'Option 2' }],
+        multiSelect: d.multiSelect,
+      };
     case 'date':
       return { ...base, type: 'date' };
     case 'file_upload':

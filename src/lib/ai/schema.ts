@@ -182,3 +182,20 @@ export const rankingElementSchema = z.object({
   required: z.boolean(),
   items: z.array(z.string()).min(2),
 });
+
+export const imageChoiceElementSchema = z.object({
+  id: z.string(),
+  type: z.literal('image_choice'),
+  title: z.string(),
+  description: z.string().nullable().optional(),
+  required: z.boolean(),
+  options: z
+    .array(
+      z.object({
+        label: z.string(),
+        imageDataUrl: z.string().nullable().optional(),
+      }),
+    )
+    .min(2),
+  multiSelect: z.boolean().nullable().optional(),
+});
