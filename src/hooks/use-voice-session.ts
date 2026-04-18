@@ -102,11 +102,18 @@ export function useVoiceSession(onEnded?: (result: VoiceEndResult) => void) {
       setAgentSpeaking(mode === 'speaking');
     },
     onError: (message) => {
+      const raw = String(message);
+      const lower = raw.toLowerCase();
+      const isMic =
+        lower.includes('permission') ||
+        lower.includes('notallowed') ||
+        lower.includes('denied') ||
+        lower.includes('microphone');
       emitEnd({
         conversationId: conversationIdRef.current,
         transcript: transcriptRef.current,
-        reason: 'runtime_error',
-        error: String(message),
+        reason: isMic ? 'mic_denied' : 'runtime_error',
+        error: raw,
       });
     },
   });
@@ -130,48 +137,52 @@ export function useVoiceSession(onEnded?: (result: VoiceEndResult) => void) {
       setStatus('connecting');
 
       try {
-        // Explicit mic request within the user-gesture window. Must be
-        // synchronous-first: no awaited network fetch before this call
-        // or Safari will silently suppress the permission prompt.
-        let stream: MediaStream;
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        } catch (permErr) {
-          emitEnd({
-            conversationId: null,
-            transcript: [],
-            reason: 'mic_denied',
-            error: permErr instanceof Error ? permErr.message : String(permErr),
-          });
-          return;
-        }
-        // Release — the SDK opens its own input stream on startSession.
-        stream.getTracks().forEach((t) => t.stop());
-
-        const res = await fetch(
-          `/api/elevenlabs/signed-url?agentId=${encodeURIComponent(agentId)}`
-        );
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(
-            body.error || `Signed URL fetch failed (${res.status})`
-          );
-        }
-        const { signedUrl } = (await res.json()) as { signedUrl: string };
+        // DO NOT preflight getUserMedia here. The earlier version did,
+        // to surface a clean "mic_denied" reason, but every extra await
+        // between the user's click and `startSession()` risks the
+        // browser's audio-unlock gesture going stale: the AudioContext
+        // the SDK creates then starts in 'suspended' state and all
+        // agent audio is silently dropped. The SDK acquires the mic
+        // internally inside startSession and reports permission errors
+        // through onError — heuristic-sniff those in the callback.
+        //
+        // Parallelize the signed-URL fetch so we reach startSession as
+        // fast as possible.
+        const [signedUrlJson] = await Promise.all([
+          fetch(
+            `/api/elevenlabs/signed-url?agentId=${encodeURIComponent(agentId)}`
+          ).then(async (r) => {
+            if (!r.ok) {
+              const body = await r.json().catch(() => ({}));
+              throw new Error(
+                body.error || `Signed URL fetch failed (${r.status})`
+              );
+            }
+            return r.json() as Promise<{ signedUrl: string }>;
+          }),
+        ]);
 
         await conversation.startSession({
-          signedUrl,
+          signedUrl: signedUrlJson.signedUrl,
           connectionType: 'websocket',
           ...(dynamicVariables ? { dynamicVariables } : {}),
         });
         // onConnect flips status → 'active'. If it never fires, the SDK
         // will surface the failure via onError or onDisconnect(reason='error').
       } catch (err) {
+        const raw = err instanceof Error ? err.message : String(err);
+        // Heuristic mic-denied detection — since we no longer preflight.
+        const lower = raw.toLowerCase();
+        const isMic =
+          lower.includes('permission') ||
+          lower.includes('notallowed') ||
+          lower.includes('denied') ||
+          lower.includes('microphone');
         emitEnd({
           conversationId: conversationIdRef.current,
           transcript: transcriptRef.current,
-          reason: 'connect_failed',
-          error: err instanceof Error ? err.message : String(err),
+          reason: isMic ? 'mic_denied' : 'connect_failed',
+          error: raw,
         });
       }
     },
