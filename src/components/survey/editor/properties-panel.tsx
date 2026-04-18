@@ -94,6 +94,14 @@ export function PropertiesPanel({ className }: Props) {
 
   const aiContext = survey.settings.aiContext;
   const currentStrictness = aiContext?.strictness ?? 'balanced';
+  const currentModel = aiContext?.model ?? 'claude-opus-4-7';
+  const currentTemperature = aiContext?.temperature ?? 0.3;
+
+  const MODEL_OPTIONS = [
+    { value: 'claude-opus-4-7' as const, label: 'Opus 4.7' },
+    { value: 'claude-sonnet-4-6' as const, label: 'Sonnet 4.6' },
+    { value: 'claude-haiku-4-5' as const, label: 'Haiku 4.5' },
+  ];
 
   const aiContextSection = (
     <div className="p-4 space-y-4 border-b border-border/60">
@@ -135,6 +143,87 @@ export function PropertiesPanel({ className }: Props) {
             </button>
           ))}
         </div>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-2" data-ai-context-model>
+        <Label className="text-xs">Model</Label>
+        <div className="flex gap-1 rounded-lg bg-muted/40 p-0.5">
+          {MODEL_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() =>
+                updateSettings({ aiContext: { ...aiContext, model: opt.value } })
+              }
+              className={cn(
+                'flex-1 text-xs py-1.5 rounded transition-colors',
+                currentModel === opt.value
+                  ? 'bg-background shadow-sm'
+                  : 'hover:bg-background/50'
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2" data-ai-context-temperature>
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Temperature</Label>
+          <span className="text-xs font-mono text-muted-foreground tabular-nums">
+            {currentTemperature.toFixed(2)}
+          </span>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={currentTemperature}
+          onChange={(e) =>
+            updateSettings({
+              aiContext: { ...aiContext, temperature: parseFloat(e.target.value) },
+            })
+          }
+          className="w-full accent-primary"
+          aria-label="AI temperature"
+        />
+      </div>
+
+      <div className="space-y-2" data-ai-context-style-guidance>
+        <Label className="text-xs">Style guidance</Label>
+        <Textarea
+          value={aiContext?.styleGuidance ?? ''}
+          onChange={(e) =>
+            updateSettings({
+              aiContext: { ...aiContext, styleGuidance: e.target.value },
+            })
+          }
+          placeholder="e.g. Keep questions under 10 words. No jargon. Always include a 'prefer not to answer' option."
+          rows={3}
+          className="text-sm"
+        />
+        <p className="text-[10px] text-muted-foreground/70">
+          Appended to the system prompt as a Style guidance section.
+        </p>
+      </div>
+
+      <div className="space-y-2" data-ai-context-system-prompt-override>
+        <Label className="text-xs">System prompt override (optional)</Label>
+        <Textarea
+          value={aiContext?.systemPromptOverride ?? ''}
+          onChange={(e) =>
+            updateSettings({
+              aiContext: { ...aiContext, systemPromptOverride: e.target.value },
+            })
+          }
+          placeholder="Extra instructions appended to the base prompt."
+          rows={3}
+          className="text-sm font-mono text-xs"
+        />
       </div>
     </div>
   );
