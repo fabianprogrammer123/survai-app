@@ -602,6 +602,18 @@ test.describe('/test dashboard mobile', () => {
     expect(dims.scrollWidth).toBeLessThanOrEqual(dims.clientWidth + 1);
     await page.screenshot({ path: 'tests/visual/.artifacts/mobile-dashboard.png', fullPage: true });
   });
+
+  test('mobile blank-form card is sized smaller than desktop', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/test');
+    const blankCard = page.getByText(/Blank form/i).first().locator('..');
+    const box = await blankCard.boundingBox();
+    expect(box).not.toBeNull();
+    if (box) {
+      // Should be around 120px on mobile, not 150px
+      expect(box.width).toBeLessThan(140);
+    }
+  });
 });
 
 test.describe('/test/edit mobile', () => {

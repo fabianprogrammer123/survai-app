@@ -197,7 +197,7 @@ function EditorContent() {
             type="button"
             aria-label="Close AI panel"
             onClick={togglePanel}
-            className="md:hidden fixed inset-0 z-40 bg-black/40"
+            className="md:hidden fixed inset-0 z-40 bg-black/25"
           />
         )}
 
@@ -207,7 +207,7 @@ function EditorContent() {
               // Desktop: side panel
               'md:static md:flex md:w-[440px] md:border-l md:shrink-0 md:bg-background md:inset-auto md:h-auto md:rounded-none md:shadow-none',
               // Mobile: fixed bottom drawer
-              'fixed inset-x-0 bottom-0 z-50 h-[70vh] w-full border-t border-border rounded-t-2xl bg-background shadow-2xl'
+              'fixed inset-x-0 bottom-0 z-50 h-[55vh] w-full border-t border-border rounded-t-2xl bg-background shadow-2xl'
             )}
             aiEndpoint="/api/ai/chat/test"
             aiStreamEndpoint="/api/ai/chat/test/stream"

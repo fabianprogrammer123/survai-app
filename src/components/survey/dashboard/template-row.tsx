@@ -40,7 +40,7 @@ export function TemplateRow({ onTemplateSelect, searchQuery }: TemplateRowProps)
         {/* Blank form card */}
         <button
           onClick={() => onTemplateSelect('blank')}
-          className="shrink-0 w-[150px] h-[180px] rounded-xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/80 to-purple-600/80 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all duration-200 hover:border-indigo-400/50 hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/10"
+          className="shrink-0 w-[120px] sm:w-[150px] h-[150px] sm:h-[180px] rounded-xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/80 to-purple-600/80 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all duration-200 hover:border-indigo-400/50 hover:-translate-y-1 hover:shadow-lg hover:shadow-indigo-500/10"
         >
           <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
             <Plus className="h-7 w-7 text-white" />
@@ -71,10 +71,10 @@ export function TemplateRow({ onTemplateSelect, searchQuery }: TemplateRowProps)
             <button
               key={template.templateId}
               onClick={() => onTemplateSelect(template.templateId)}
-              className="shrink-0 w-[150px] h-[180px] rounded-xl border border-border/50 bg-card overflow-hidden cursor-pointer transition-all duration-200 hover:border-primary/40 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/15"
+              className="shrink-0 w-[120px] sm:w-[150px] h-[150px] sm:h-[180px] rounded-xl border border-border/50 bg-card overflow-hidden cursor-pointer transition-all duration-200 hover:border-primary/40 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/15"
             >
               {/* Preview takes top portion */}
-              <div className="h-[130px] bg-background">
+              <div className="h-[105px] sm:h-[130px] bg-background">
                 <MiniFormPreview
                   title={template.label}
                   questions={previewQuestions}
