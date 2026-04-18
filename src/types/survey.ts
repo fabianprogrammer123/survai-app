@@ -8,6 +8,7 @@ export const ELEMENT_TYPES = [
   'nps',
   'slider',
   'matrix_single',
+  'likert',
   'ranking',
   'image_choice',
   'date',
@@ -105,6 +106,14 @@ export interface MatrixSingleElement extends BaseElement {
   columns: string[];
 }
 
+export interface LikertElement extends BaseElement {
+  type: 'likert';
+  /** Statements respondents rate. */
+  rows: string[];
+  /** 3, 5, or 7-point Strongly Disagree → Strongly Agree scale. */
+  scale: 3 | 5 | 7;
+}
+
 export interface RankingElement extends BaseElement {
   type: 'ranking';
   /** Items the respondent drags into preference order. Must be unique labels. */
@@ -147,6 +156,7 @@ export type SurveyElement =
   | NpsElement
   | SliderElement
   | MatrixSingleElement
+  | LikertElement
   | RankingElement
   | ImageChoiceElement
   | DateElement

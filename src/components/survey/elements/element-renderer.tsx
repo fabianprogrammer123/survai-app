@@ -8,6 +8,7 @@ import { LinearScaleRenderer } from './linear-scale';
 import { NpsRenderer } from './nps';
 import { SliderRenderer } from './slider';
 import { MatrixSingleRenderer } from './matrix-single';
+import { LikertRenderer } from './likert';
 import { RankingRenderer } from './ranking';
 import { DateRenderer } from './date-element';
 import { FileUploadRenderer } from './file-upload';
@@ -34,6 +35,7 @@ const RENDERERS: Record<string, React.ComponentType<any>> = {
   nps: NpsRenderer,
   slider: SliderRenderer,
   matrix_single: MatrixSingleRenderer,
+  likert: LikertRenderer,
   ranking: RankingRenderer,
   date: DateRenderer,
   file_upload: FileUploadRenderer,

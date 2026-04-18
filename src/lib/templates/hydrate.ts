@@ -166,6 +166,26 @@ function buildElement(
         rows: d.rows ?? ['Statement 1', 'Statement 2', 'Statement 3'],
         columns: d.columns ?? ['Poor', 'Fair', 'Good', 'Excellent'],
       };
+    case 'likert':
+      return {
+        ...base,
+        type: 'likert',
+        rows: d.rows ?? ['Statement 1', 'Statement 2', 'Statement 3'],
+        scale: d.scale ?? 5,
+      };
+    case 'ranking':
+      return {
+        ...base,
+        type: 'ranking',
+        items: d.items ?? ['Option A', 'Option B', 'Option C'],
+      };
+    case 'image_choice':
+      return {
+        ...base,
+        type: 'image_choice',
+        options: d.imageOptions ?? [{ label: 'Option 1' }, { label: 'Option 2' }],
+        multiSelect: d.multiSelect,
+      };
     case 'date':
       return { ...base, type: 'date' };
     case 'file_upload':

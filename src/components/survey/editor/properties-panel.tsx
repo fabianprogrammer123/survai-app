@@ -17,6 +17,7 @@ import type {
   SurveyElement,
   LinearScaleElement,
   MatrixSingleElement,
+  LikertElement,
   RankingElement,
   ImageChoiceElement,
 } from '@/types/survey';
@@ -62,6 +63,12 @@ function buildTypeConversion(source: SurveyElement, targetType: ElementType): Pa
     updates.rows = (src.rows as string[]) ?? ['Statement 1', 'Statement 2', 'Statement 3'];
     updates.columns = (src.columns as string[]) ?? ['Poor', 'Fair', 'Good', 'Excellent'];
     updates.options = undefined;
+  } else if (targetType === 'likert') {
+    const src = source as unknown as Record<string, unknown>;
+    updates.rows = (src.rows as string[]) ?? ['Statement 1', 'Statement 2', 'Statement 3'];
+    updates.scale = (src.scale as 3 | 5 | 7) ?? 5;
+    updates.options = undefined;
+    updates.columns = undefined;
   } else if (targetType === 'ranking') {
     const src = source as unknown as Record<string, unknown>;
     updates.items = (src.items as string[]) ?? (src.options as string[]) ?? ['Option A', 'Option B', 'Option C'];
@@ -75,9 +82,14 @@ function buildTypeConversion(source: SurveyElement, targetType: ElementType): Pa
     updates.maxLabel = undefined;
   }
 
-  if (targetType !== 'matrix_single') {
+  if (targetType !== 'matrix_single' && targetType !== 'likert') {
     updates.rows = undefined;
+  }
+  if (targetType !== 'matrix_single') {
     updates.columns = undefined;
+  }
+  if (targetType !== 'likert') {
+    updates.scale = undefined;
   }
 
   if (targetType !== 'ranking') {
@@ -578,6 +590,78 @@ export function PropertiesPanel({ className }: Props) {
                   className="text-xs text-muted-foreground hover:text-foreground"
                 >
                   + Add column
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Likert config */}
+        {element.type === 'likert' && (
+          <>
+            <Separator />
+            <div className="space-y-4">
+              {/* Scale picker */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium uppercase text-muted-foreground">Scale</Label>
+                <div className="flex gap-1 rounded-lg bg-muted/40 p-0.5" data-likert-scale-picker="true">
+                  {([3, 5, 7] as const).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => updateElement(element.id, { scale: s } as Partial<SurveyElement>)}
+                      className={cn(
+                        'flex-1 text-xs py-1.5 rounded transition-colors',
+                        (element as LikertElement).scale === s
+                          ? 'bg-background shadow-sm'
+                          : 'hover:bg-background/50'
+                      )}
+                    >
+                      {s}-point
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Rows (shared editor pattern) */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium uppercase text-muted-foreground">Statements (rows)</Label>
+                {(element as LikertElement).rows.map((row, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Input
+                      value={row}
+                      onChange={(e) => {
+                        const rows = [...(element as LikertElement).rows];
+                        rows[i] = e.target.value;
+                        updateElement(element.id, { rows } as Partial<SurveyElement>);
+                      }}
+                      className="h-8 text-sm"
+                    />
+                    {(element as LikertElement).rows.length > 1 && (
+                      <button
+                        type="button"
+                        aria-label={`Remove row ${i + 1}`}
+                        onClick={() => {
+                          const rows = (element as LikertElement).rows.filter((_, idx) => idx !== i);
+                          updateElement(element.id, { rows } as Partial<SurveyElement>);
+                        }}
+                        className="text-muted-foreground hover:text-destructive text-xs px-1"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const current = (element as LikertElement).rows;
+                    const rows = [...current, `Statement ${current.length + 1}`];
+                    updateElement(element.id, { rows } as Partial<SurveyElement>);
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  + Add row
                 </button>
               </div>
             </div>

@@ -15,6 +15,7 @@ import {
   SlidersHorizontal,
   Grid3x3,
   ArrowUpDown,
+  ListChecks,
 } from 'lucide-react';
 import { type LucideIcon } from 'lucide-react';
 
@@ -163,6 +164,26 @@ export const CATALOG: CatalogEntry[] = [
       required: false,
       rows: ['Statement 1', 'Statement 2', 'Statement 3'],
       columns: ['Poor', 'Fair', 'Good', 'Excellent'],
+    }),
+  },
+  {
+    type: 'likert',
+    label: 'Likert Scale',
+    description: 'Standard agreement scale for multiple statements',
+    icon: ListChecks,
+    category: 'choice',
+    defaultElement: () => ({
+      id: `el_${nanoid(8)}`,
+      type: 'likert' as const,
+      title: 'To what extent do you agree?',
+      description: '',
+      required: false,
+      rows: [
+        'The product is easy to use',
+        'The product is reliable',
+        'I would recommend this product',
+      ],
+      scale: 5,
     }),
   },
   {

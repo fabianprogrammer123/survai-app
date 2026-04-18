@@ -729,6 +729,35 @@ test.describe('/test editor — smoke', () => {
     const rows = matrix.locator('tbody tr');
     expect(await rows.count()).toBeGreaterThanOrEqual(3);
   });
+
+  test('Likert Scale renders matrix with 5 columns by default', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByRole('menuitem', { name: /Likert/i }).first().click();
+    const matrix = page.locator('[data-matrix-single]').last();
+    await expect(matrix).toBeVisible();
+    // 5-point scale = 5 column headers (+1 for the empty row-label column)
+    const headers = matrix.locator('thead th');
+    expect(await headers.count()).toBeGreaterThanOrEqual(5);
+  });
+
+  test('Ranking renders draggable list', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByRole('menuitem', { name: /^Ranking$/i }).first().click();
+    const ranking = page.locator('[data-ranking="true"]').last();
+    await expect(ranking).toBeVisible();
+    const items = ranking.locator('[data-ranking-item="true"]');
+    expect(await items.count()).toBeGreaterThanOrEqual(3);
+  });
 });
 
 test.describe('/s/preview mobile', () => {
