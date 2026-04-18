@@ -2,12 +2,23 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
+function resolveEnv(name: string, devFallback: string): string {
+  const v = process.env[name];
+  if (v) return v;
+  // In production, fail loud. In dev, use the fallback so a half-configured
+  // local environment still renders pages.
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(`Missing required env var in production: ${name}`);
+  }
+  return devFallback;
+}
+
 export async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key',
+    resolveEnv('NEXT_PUBLIC_SUPABASE_URL', 'http://localhost:54321'),
+    resolveEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'placeholder-key'),
     {
       cookies: {
         getAll() {

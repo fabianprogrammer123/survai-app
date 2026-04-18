@@ -1,21 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
 import type { SurveyElement } from '@/types/survey';
 import { nanoid } from 'nanoid';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { getAnthropic, FAST_MODEL } from '@/lib/anthropic';
 
 /**
  * POST /api/ai/responses
- * Generates realistic dummy survey responses using GPT-4o.
+ * Generates realistic dummy survey responses using Claude Haiku 4.5.
+ * Low-stakes task — fast + cheap model is the right pick here.
  */
 export async function POST(req: NextRequest) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(
-        { error: 'OPENAI_API_KEY not configured.' },
+        { error: 'ANTHROPIC_API_KEY not configured.' },
         { status: 500 }
       );
     }
@@ -26,7 +23,6 @@ export async function POST(req: NextRequest) {
       title: string;
     };
 
-    // Filter to answerable elements only
     const answerable = elements.filter(
       (el) => !['section_header', 'page_break', 'file_upload'].includes(el.type)
     );
@@ -35,7 +31,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ responses: [] });
     }
 
-    // Build a description of each question for the AI
     const questionDescriptions = answerable.map((el, i) => {
       let desc = `Q${i + 1} (id: "${el.id}", type: ${el.type}): "${el.title}"`;
       if (el.type === 'multiple_choice' || el.type === 'checkboxes' || el.type === 'dropdown') {
@@ -61,7 +56,7 @@ Each response should come from a different simulated persona with varying demogr
 Questions:
 ${questionDescriptions.join('\n')}
 
-Return a JSON object with this exact structure:
+Return ONLY a JSON object (no prose, no markdown fences) with this exact structure:
 {
   "responses": [
     {
@@ -87,31 +82,41 @@ Guidelines:
 - Include some responses that mention specific features, issues, or suggestions
 - Generate exactly ${count} response objects`;
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+    const anthropic = getAnthropic();
+    const response = await anthropic.messages.create({
+      model: FAST_MODEL,
+      max_tokens: 16000,
+      system: systemPrompt,
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Generate ${count} responses now.` },
+        { role: 'user', content: `Generate ${count} responses now. Return only the JSON object.` },
       ],
-      response_format: { type: 'json_object' },
-      temperature: 0.9,
     });
 
-    const raw = completion.choices[0]?.message?.content;
+    // Anthropic returns a content-block array; concatenate the text blocks.
+    const raw = response.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+
     if (!raw) {
       return NextResponse.json({ error: 'No response from AI' }, { status: 502 });
     }
 
+    // Strip potential markdown fences Claude sometimes adds despite instructions.
+    const cleaned = raw
+      .replace(/^\s*```(?:json)?\s*/i, '')
+      .replace(/\s*```\s*$/i, '')
+      .trim();
+
     let parsed;
     try {
-      parsed = JSON.parse(raw);
+      parsed = JSON.parse(cleaned);
     } catch {
-      console.error('Failed to parse AI response:', raw?.slice(0, 500));
+      console.error('Failed to parse AI response:', cleaned.slice(0, 500));
       return NextResponse.json({ error: 'Invalid AI response format' }, { status: 502 });
     }
-    const now = new Date();
 
-    // Add IDs and timestamps to each response
+    const now = new Date();
     const responses = (parsed.responses || []).map(
       (r: { answers: Record<string, unknown> }, index: number) => ({
         id: `resp_${nanoid(8)}`,
@@ -133,3 +138,6 @@ Guidelines:
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
+
+// Type import for narrowing content blocks
+import type Anthropic from '@anthropic-ai/sdk';

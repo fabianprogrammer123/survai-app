@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import type Anthropic from '@anthropic-ai/sdk';
 import { buildResultsSystemPrompt } from '@/lib/ai/results-prompts';
 import type { SurveyElement, SurveyResponseData } from '@/types/survey';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { getAnthropic, DEFAULT_MODEL } from '@/lib/anthropic';
 
 /**
  * POST /api/ai/results
  * Analyzes survey responses and returns A2UI component specs for the dashboard.
+ * Backed by Claude Opus 4.7 — this is a high-stakes analysis task.
  */
 export async function POST(req: NextRequest) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(
-        { error: 'OPENAI_API_KEY not configured.' },
+        { error: 'ANTHROPIC_API_KEY not configured.' },
         { status: 500 }
       );
     }
@@ -29,35 +27,46 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt = buildResultsSystemPrompt(elements, responses);
 
-    const chatMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-      { role: 'system', content: systemPrompt },
-      ...(history || []).map((msg) => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-      })),
+    const chatMessages = [
+      ...(history || [])
+        .filter((m) => m.role === 'user' || m.role === 'assistant')
+        .map((msg) => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content,
+        })),
       {
-        role: 'user',
-        content: message || 'Generate an overview dashboard with charts for all survey questions.',
+        role: 'user' as const,
+        content: message || 'Generate an overview dashboard with charts for all survey questions. Return only the JSON object — no prose, no markdown fences.',
       },
     ];
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+    const anthropic = getAnthropic();
+    const response = await anthropic.messages.create({
+      model: DEFAULT_MODEL,
+      max_tokens: 16000,
+      system: systemPrompt + '\n\nReturn ONLY a JSON object. No prose, no markdown fences.',
       messages: chatMessages,
-      response_format: { type: 'json_object' },
-      temperature: 0.5,
     });
 
-    const raw = completion.choices[0]?.message?.content;
+    const raw = response.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+
     if (!raw) {
       return NextResponse.json({ error: 'No response from AI' }, { status: 502 });
     }
 
+    const cleaned = raw
+      .replace(/^\s*```(?:json)?\s*/i, '')
+      .replace(/\s*```\s*$/i, '')
+      .trim();
+
     let parsed;
     try {
-      parsed = JSON.parse(raw);
+      parsed = JSON.parse(cleaned);
     } catch {
-      console.error('Failed to parse AI response:', raw?.slice(0, 500));
+      console.error('Failed to parse AI response:', cleaned.slice(0, 500));
       return NextResponse.json({ error: 'Invalid AI response format' }, { status: 502 });
     }
 

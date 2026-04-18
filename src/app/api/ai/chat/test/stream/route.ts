@@ -1,24 +1,20 @@
 import { NextRequest } from 'next/server';
-import OpenAI from 'openai';
-import { zodResponseFormat } from 'openai/helpers/zod';
+import type Anthropic from '@anthropic-ai/sdk';
 import { aiResponseSchema } from '@/lib/ai/schema';
 import { buildSystemPrompt } from '@/lib/ai/prompts';
 import { hydrateBlueprint } from '@/lib/templates/hydrate';
 import { DEFAULT_SETTINGS } from '@/types/survey';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { getAnthropic, DEFAULT_MODEL } from '@/lib/anthropic';
 
 /**
- * SSE streaming test endpoint.
- * Sends status updates while waiting for OpenAI, then streams
- * the hydrated result element-by-element.
+ * POST /api/ai/chat/test/stream
+ * SSE streaming test endpoint. Emits status events while Claude thinks,
+ * then streams the hydrated result element-by-element.
  */
 export async function POST(req: NextRequest) {
-  if (!process.env.OPENAI_API_KEY) {
+  if (!process.env.ANTHROPIC_API_KEY) {
     return new Response(
-      JSON.stringify({ error: 'OPENAI_API_KEY not configured.' }),
+      JSON.stringify({ error: 'ANTHROPIC_API_KEY not configured.' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
@@ -46,50 +42,62 @@ export async function POST(req: NextRequest) {
           }
         );
 
-        const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-          { role: 'system', content: systemPrompt },
-          ...(history || []).map((msg: { role: string; content: string }) => ({
-            role: msg.role as 'user' | 'assistant',
-            content: msg.content,
-          })),
-          { role: 'user', content: message },
+        const messages = [
+          ...(history || [])
+            .filter((m: { role: string }) => m.role === 'user' || m.role === 'assistant')
+            .map((m: { role: string; content: string }) => ({
+              role: m.role as 'user' | 'assistant',
+              content: m.content,
+            })),
+          { role: 'user' as const, content: message },
         ];
 
         send('status', { text: 'Designing your survey...' });
 
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o',
+        const anthropic = getAnthropic();
+        const response = await anthropic.messages.create({
+          model: DEFAULT_MODEL,
+          max_tokens: 16000,
+          system: systemPrompt + '\n\nReturn ONLY a JSON object matching the survey_response schema. No prose, no markdown fences.',
           messages,
-          response_format: zodResponseFormat(aiResponseSchema, 'survey_response'),
-          temperature: 0.3,
         });
 
-        const raw = completion.choices[0]?.message?.content;
-        const usage = completion.usage;
+        const raw = response.content
+          .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+          .map((b) => b.text)
+          .join('');
 
-        // Emit trace data for admin observability
+        const usage = response.usage;
         send('trace', {
-          tokenUsage: usage ? { prompt: usage.prompt_tokens, completion: usage.completion_tokens, total: usage.total_tokens } : null,
-          model: completion.model,
+          tokenUsage: usage
+            ? { input: usage.input_tokens, output: usage.output_tokens, cacheRead: usage.cache_read_input_tokens }
+            : null,
+          model: response.model,
+          stopReason: response.stop_reason,
           systemPromptLength: systemPrompt.length,
-          rawResponse: raw,
         });
 
-        if (!raw) {
-          send('error', { error: 'No response from AI' });
-          controller.close();
-          return;
-        }
+        const cleaned = raw
+          .replace(/^\s*```(?:json)?\s*/i, '')
+          .replace(/\s*```\s*$/i, '')
+          .trim();
 
-        let parsed;
+        let parsedRaw: unknown;
         try {
-          parsed = JSON.parse(raw);
+          parsedRaw = JSON.parse(cleaned);
         } catch {
-          console.error('Failed to parse AI response:', raw?.slice(0, 500));
           send('error', { error: 'Invalid AI response format' });
           controller.close();
           return;
         }
+
+        const zodResult = aiResponseSchema.safeParse(parsedRaw);
+        if (!zodResult.success) {
+          send('error', { error: 'AI response did not match schema' });
+          controller.close();
+          return;
+        }
+        const parsed = zodResult.data;
 
         if (parsed.intent === 'clarify') {
           send('result', {
@@ -104,18 +112,16 @@ export async function POST(req: NextRequest) {
         if (parsed.intent === 'propose') {
           send('status', { text: 'Preparing proposals...' });
 
-          const hydratedProposals = (parsed.proposals || []).map(
-            (p: { label: string; description?: string; blueprint: Parameters<typeof hydrateBlueprint>[0] }) => {
-              const result = hydrateBlueprint(p.blueprint);
-              return {
-                label: p.label,
-                description: p.description,
-                elements: result.elements,
-                settings: result.settings,
-                blockMap: result.blockMap,
-              };
-            }
-          );
+          const hydratedProposals = (parsed.proposals || []).map((p) => {
+            const result = hydrateBlueprint(p.blueprint as Parameters<typeof hydrateBlueprint>[0]);
+            return {
+              label: p.label,
+              description: p.description ?? undefined,
+              elements: result.elements,
+              settings: result.settings,
+              blockMap: result.blockMap,
+            };
+          });
 
           send('result', {
             intent: 'propose',
@@ -129,9 +135,8 @@ export async function POST(req: NextRequest) {
         if (parsed.intent === 'generate') {
           send('status', { text: 'Building survey elements...' });
 
-          const result = hydrateBlueprint(parsed.blueprint);
+          const result = hydrateBlueprint(parsed.blueprint as Parameters<typeof hydrateBlueprint>[0]);
 
-          // Send metadata first
           send('generation_start', {
             message: parsed.message,
             title: result.title,
@@ -142,7 +147,6 @@ export async function POST(req: NextRequest) {
             totalElements: result.elements.length,
           });
 
-          // Stream each element individually
           for (let i = 0; i < result.elements.length; i++) {
             send('element', {
               element: result.elements[i],

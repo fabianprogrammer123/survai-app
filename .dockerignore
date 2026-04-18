@@ -1,0 +1,42 @@
+# Git + GitHub workflows
+.git
+.gitignore
+.github
+.gitattributes
+
+# Next.js build artifacts (rebuilt inside the container)
+.next
+out
+
+# Env files (secrets come from Cloud Run / Secret Manager at runtime)
+.env
+.env.*
+
+# Worktrees + working artifacts
+.worktrees
+.audit
+
+# Dev dependencies installed during build, not shipped
+node_modules
+
+# Logs + caches
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+*.log
+
+# Docs and tests not needed at runtime
+README.md
+HANDOVER.md
+EXTENDING.md
+docs
+tests
+
+# Editor configs
+.vscode
+.idea
+.DS_Store
+
+# Supabase CLI artifacts (we use migrations by applying SQL, not the CLI at runtime)
+supabase/.branches
+supabase/.temp
