@@ -18,6 +18,7 @@ const blueprintBlockSchema = z.object({
       max: z.number().nullable().optional(),
       minLabel: z.string().nullable().optional(),
       maxLabel: z.string().nullable().optional(),
+      mode: z.enum(['discrete', 'continuous']).nullable().optional().describe("Linear-scale display mode: 'discrete' (radio dots) or 'continuous' (slider)"),
       accentColor: z.string().nullable().optional().describe('Hex accent color for this element border'),
       backgroundColor: z.string().nullable().optional().describe('Hex background color for this element card'),
     })
@@ -80,6 +81,10 @@ const nullablePartialSettingsSchema = z.object({
   stylePreset: z.enum(['google-forms', 'typeform']).nullable().optional().describe('Visual preset: google-forms (scroll list) or typeform (one question at a time)'),
   colorMode: z.enum(['light', 'dark']).nullable().optional().describe('Light or dark color mode for the survey'),
   layoutMode: z.enum(['scroll', 'one-at-a-time']).nullable().optional().describe('Layout mode — usually derived from stylePreset, only set explicitly for unusual combinations'),
+  aiContext: z.object({
+    goal: z.string().nullable().optional(),
+    strictness: z.enum(['strict', 'balanced', 'open']).nullable().optional(),
+  }).nullable().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -98,6 +103,7 @@ const elementUpdatesSchema = z.object({
   max: z.number().nullable().optional(),
   minLabel: z.string().nullable().optional(),
   maxLabel: z.string().nullable().optional(),
+  mode: z.enum(['discrete', 'continuous']).nullable().optional().describe("Linear-scale display mode"),
   accentColor: z.string().nullable().optional().describe('Hex accent color'),
   backgroundColor: z.string().nullable().optional().describe('Hex background color'),
 });

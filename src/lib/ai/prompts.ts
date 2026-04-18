@@ -1,5 +1,5 @@
 import { blocksToPromptString, templatesToPromptString } from '@/lib/templates/manifest';
-import type { SurveyElement } from '@/types/survey';
+import type { SurveyElement, SurveySettings } from '@/types/survey';
 
 interface CurrentSurveyState {
   title: string;
@@ -7,6 +7,26 @@ interface CurrentSurveyState {
   schema: SurveyElement[];
   settings: unknown;
   elementBlockMap?: Record<string, string>;
+}
+
+const STRICTNESS_DESCRIPTIONS: Record<'strict' | 'balanced' | 'open', string> = {
+  strict: 'Stay on-script. Ask only the defined questions verbatim. Do not probe.',
+  balanced: 'Ask the defined questions but probe for clarification when answers are vague.',
+  open: 'Use the questions as a seed. Follow interesting threads. Extract deep insights.',
+};
+
+function buildAiContextSection(settings: unknown): string {
+  const ctx = (settings as SurveySettings | null | undefined)?.aiContext;
+  if (!ctx) return '';
+  const goal = ctx.goal?.trim();
+  const strictness = ctx.strictness;
+  if (!goal && !strictness) return '';
+  const lines: string[] = ['', '## Survey context'];
+  if (goal) lines.push(`Goal: ${goal}`);
+  if (strictness) {
+    lines.push(`Interview strictness: ${strictness} — ${STRICTNESS_DESCRIPTIONS[strictness]}`);
+  }
+  return lines.join('\n');
 }
 
 export function buildSystemPrompt(currentSurvey: CurrentSurveyState): string {
@@ -25,6 +45,8 @@ export function buildSystemPrompt(currentSurvey: CurrentSurveyState): string {
           })
           .join('\n');
 
+  const aiContextSection = buildAiContextSection(currentSurvey.settings);
+
   return `You are Survai — a sharp, friendly AI survey builder. Keep responses short and punchy. No filler. Get to the point.
 
 ## Blocks & Templates
@@ -37,7 +59,7 @@ ${templateCatalog}
 ## Current State
 Title: ${currentSurvey.title} | Description: ${currentSurvey.description || '(none)'}
 Elements:
-${elementSummary}
+${elementSummary}${aiContextSection}
 
 ## Intents
 

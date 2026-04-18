@@ -120,10 +120,61 @@ export function PropertiesPanel({ className }: Props) {
     </div>
   );
 
+  const aiContext = survey.settings.aiContext;
+  const currentStrictness = aiContext?.strictness ?? 'balanced';
+
+  const aiContextSection = (
+    <div className="p-4 space-y-4 border-b border-border/60">
+      <h3 className="text-sm font-semibold">AI Context</h3>
+      <div className="space-y-2">
+        <Label className="text-xs">Survey goal (hidden from respondents)</Label>
+        <Textarea
+          value={aiContext?.goal ?? ''}
+          onChange={(e) =>
+            updateSettings({ aiContext: { ...aiContext, goal: e.target.value } })
+          }
+          placeholder="e.g. Understand why B2B SaaS customers churn in the first 90 days"
+          rows={3}
+          className="text-sm"
+          data-ai-context-goal
+        />
+      </div>
+      <div className="space-y-2">
+        <Label className="text-xs">Interview strictness</Label>
+        <div
+          className="flex gap-1 rounded-lg bg-muted/40 p-0.5"
+          data-ai-context-strictness
+        >
+          {(['strict', 'balanced', 'open'] as const).map((level) => (
+            <button
+              key={level}
+              type="button"
+              onClick={() =>
+                updateSettings({ aiContext: { ...aiContext, strictness: level } })
+              }
+              className={cn(
+                'flex-1 text-xs py-1.5 rounded capitalize transition-colors',
+                currentStrictness === level
+                  ? 'bg-background shadow-sm'
+                  : 'hover:bg-background/50'
+              )}
+            >
+              {level}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   if (!element) {
     return (
-      <div className={cn('flex flex-col', className)}>
+      <div
+        data-properties-panel="true"
+        className={cn('flex flex-col h-full overflow-y-auto', className)}
+      >
         {stylePickerUI}
+        {aiContextSection}
         <div className="flex flex-col items-center justify-center text-muted-foreground text-sm p-8 gap-2 flex-1">
           <div className="h-10 w-10 rounded-xl bg-muted/60 flex items-center justify-center mb-1">
             <X className="h-4 w-4 text-muted-foreground/50" />

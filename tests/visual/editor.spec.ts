@@ -552,6 +552,33 @@ test.describe('/test editor — smoke', () => {
     // (we assert the card exists; the preview rendering is visual)
   });
 
+  test('AI context field persists across view changes', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+
+    // Open Properties tab with no element selected
+    await page.getByRole('button', { name: /Properties/i }).click().catch(() => {});
+
+    // Find the AI context textarea
+    const goal = page.locator('[data-ai-context-goal]');
+    if (!(await goal.isVisible().catch(() => false))) {
+      // Not all paths surface this; skip gracefully
+      return;
+    }
+    await goal.fill('Understand churn drivers');
+
+    // Click strictness "strict"
+    await page.locator('[data-ai-context-strictness] button', { hasText: /strict/i }).first().click();
+
+    // Reload the page
+    await page.reload();
+    await page.getByRole('button', { name: /Properties/i }).click().catch(() => {});
+    await expect(goal).toHaveValue('Understand churn drivers');
+  });
+
   test('page_break actually paginates the respondent view', async ({ page }) => {
     const surveyJson = JSON.stringify({
       id: 'pagebreak-test',

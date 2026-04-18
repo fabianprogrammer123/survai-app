@@ -68,6 +68,8 @@ export interface DropdownElement extends BaseElement {
 
 export interface LinearScaleElement extends BaseElement, WithScale {
   type: 'linear_scale';
+  /** 'discrete' renders radio dots (default), 'continuous' renders a slider. */
+  mode?: 'discrete' | 'continuous';
 }
 
 export interface DateElement extends BaseElement {
@@ -117,6 +119,11 @@ export interface SurveySettings {
    * with next/prev navigation (Typeform style).
    */
   layoutMode?: 'scroll' | 'one-at-a-time';
+  /** Hidden survey-level configuration that shapes AI behavior. */
+  aiContext?: {
+    goal?: string;
+    strictness?: 'strict' | 'balanced' | 'open';
+  };
 }
 
 export const DEFAULT_SETTINGS: SurveySettings = {
@@ -127,6 +134,7 @@ export const DEFAULT_SETTINGS: SurveySettings = {
   stylePreset: 'google-forms',
   colorMode: 'dark',
   layoutMode: 'scroll',
+  aiContext: { strictness: 'balanced' },
 };
 
 export interface Survey {
