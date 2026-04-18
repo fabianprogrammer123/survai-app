@@ -23,9 +23,17 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build-time NEXT_PUBLIC_* baked into the client bundle.
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+# Build-time NEXT_PUBLIC_* baked into the client bundle. These are PUBLIC
+# values by design — the Supabase anon key is already exposed to every
+# browser loading the app, and RLS policies enforce data isolation. Defaults
+# reference the existing Survai Supabase project. Override via --build-arg
+# when deploying a different environment (staging, etc.).
+#
+# Note: `gcloud run deploy --source --set-build-env-vars` does NOT translate
+# to Dockerfile --build-arg (it's buildpack-only). That's why defaults live
+# here. For secret values, use Secret Manager mounted at runtime, not here.
+ARG NEXT_PUBLIC_SUPABASE_URL=https://shgsuahugiiuyopwyxtp.supabase.co
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNoZ3N1YWh1Z2lpdXlvcHd5eHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0Njc0MTgsImV4cCI6MjA5MjA0MzQxOH0.fYpuzVnhhIy3sICHVLaEcXgT3MtAV1r4O-QqaTMHEvY
 ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
 ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV NEXT_TELEMETRY_DISABLED=1
