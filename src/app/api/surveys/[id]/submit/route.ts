@@ -24,7 +24,12 @@ export async function POST(
   const start = Date.now();
   const { id } = await params;
 
-  let body: { answers?: unknown; guestToken?: string };
+  let body: {
+    answers?: unknown;
+    guestToken?: string;
+    channel?: unknown;
+    conversationId?: unknown;
+  };
   try {
     body = await req.json();
   } catch {
@@ -32,6 +37,22 @@ export async function POST(
   }
 
   const { answers, guestToken } = body;
+  // Channel defaults to 'web_form' for form submissions. Voice respondents
+  // who hit the read-back → submit path send 'web_voice' so we can tell
+  // voice-verified answers apart from typed ones in analytics. Anything
+  // else is coerced to the default rather than rejected — avoids 4xx for a
+  // client that typos the channel name.
+  const ALLOWED_CHANNELS = ['web_form', 'web_voice'] as const;
+  type Channel = (typeof ALLOWED_CHANNELS)[number];
+  const channel: Channel =
+    typeof body.channel === 'string' &&
+    (ALLOWED_CHANNELS as readonly string[]).includes(body.channel)
+      ? (body.channel as Channel)
+      : 'web_form';
+  const conversationId =
+    typeof body.conversationId === 'string' && body.conversationId.length > 0
+      ? body.conversationId
+      : null;
 
   if (!answers || typeof answers !== 'object') {
     return NextResponse.json(
@@ -52,10 +73,14 @@ export async function POST(
     .insert({
       survey_id: id,
       answers,
-      channel: 'web_form',
+      channel,
       metadata: {
         userAgent: req.headers.get('user-agent') ?? null,
         submittedAt: new Date().toISOString(),
+        // Only set when a voice conversation preceded this submit — pairs
+        // with the webhook row (which also carries conversationId) for
+        // analytics / deduping.
+        ...(conversationId ? { conversationId } : {}),
       },
     });
 
@@ -133,7 +158,9 @@ export async function POST(
   log.info({
     event: 'response.submitted',
     surveyId: id,
+    channel,
     hasGuestToken: !!guestToken,
+    hasConversationId: !!conversationId,
     durationMs: Date.now() - start,
   });
 
