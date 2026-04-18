@@ -38,35 +38,25 @@ export function DashboardContent({ surveys }: Props) {
   const handleCreate = async () => {
     setError(null);
     setCreating(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setCreating(false);
-      return;
-    }
-
-    const { data, error: insertError } = await supabase
-      .from('surveys')
-      .insert({
-        user_id: user.id,
-        title: 'Untitled Survey',
-        description: '',
-        schema: [],
-        settings: {
-          theme: 'default',
-          showProgressBar: true,
-          shuffleQuestions: false,
-          confirmationMessage: 'Thank you for your response!',
-        },
-      })
-      .select()
-      .single();
-
-    if (data && !insertError) {
-      router.push(`/survey/${data.id}/edit`);
-    } else {
+    try {
+      const res = await fetch('/api/surveys', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        setError(err?.error || 'Failed to create survey. Please try again.');
+        setCreating(false);
+        return;
+      }
+      const survey = await res.json();
+      router.push(`/survey/${survey.id}/edit`);
+    } catch (e) {
+      console.error('[dashboard] create failed:', e);
       setError('Failed to create survey. Please try again.');
+      setCreating(false);
     }
-    setCreating(false);
   };
 
   const handleDelete = async (id: string, title: string) => {
