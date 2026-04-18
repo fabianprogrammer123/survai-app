@@ -1,10 +1,17 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Pencil, BarChart3, Trash2 } from 'lucide-react';
+import { Copy, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import type { SurveyMeta } from '@/lib/survey/local-surveys';
 import { formatRelativeDate } from '@/lib/survey/local-surveys';
 import { MiniFormPreview } from './mini-form-preview';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 // Accent color based on style preset
 const ACCENT_COLORS: Record<string, string> = {
@@ -38,38 +45,10 @@ export function SurveyCard({ survey, onDuplicate, onDelete }: SurveyCardProps) {
           accentColor={accent}
           bgColor="#f6f8fb"
         />
-
-        {/* Hover action overlay */}
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-2">
-          <button
-            onClick={(e) => { e.stopPropagation(); router.push(`/test/edit?id=${survey.id}`); }}
-            className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors"
-            title="Edit"
-          >
-            <Pencil className="h-4 w-4 text-white" />
-            <span className="text-[10px] font-medium text-white/80">Edit</span>
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); router.push(`/test/edit?id=${survey.id}`); }}
-            className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors"
-            title="Insights"
-          >
-            <BarChart3 className="h-4 w-4 text-white" />
-            <span className="text-[10px] font-medium text-white/80">Insights</span>
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(survey.id); }}
-            className="flex flex-col items-center gap-1 px-3 py-2 rounded-lg hover:bg-red-500/20 transition-colors"
-            title="Delete"
-          >
-            <Trash2 className="h-4 w-4 text-white" />
-            <span className="text-[10px] font-medium text-white/80">Delete</span>
-          </button>
-        </div>
       </div>
 
       {/* Footer */}
-      <div className="px-3.5 py-3 flex items-center justify-between">
+      <div className="px-3.5 py-3 flex items-center justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground truncate">{survey.title}</p>
           <div className="flex items-center gap-2 mt-0.5">
@@ -84,6 +63,38 @@ export function SurveyCard({ survey, onDuplicate, onDelete }: SurveyCardProps) {
             )}
           </div>
         </div>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0 p-1.5 rounded-md hover:bg-muted/60 transition-colors outline-none"
+            title="More actions"
+          >
+            <MoreVertical className="h-4 w-4 text-muted-foreground" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <DropdownMenuItem
+              onClick={(e) => { e.stopPropagation(); router.push(`/test/edit?id=${survey.id}`); }}
+            >
+              <Pencil className="h-4 w-4 mr-2" /> Open
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => { e.stopPropagation(); onDuplicate(survey.id); }}
+            >
+              <Copy className="h-4 w-4 mr-2" /> Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={(e) => { e.stopPropagation(); onDelete(survey.id); }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );

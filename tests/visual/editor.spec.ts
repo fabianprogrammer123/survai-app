@@ -474,6 +474,42 @@ test.describe('/test editor — smoke', () => {
     await expect(page.getByText(/Filter Test Survey/i).first()).toBeVisible();
   });
 
+  test('survey card footer has three-dot menu with open/duplicate/delete', async ({ page }) => {
+    await page.goto('/test');
+    await page.evaluate(() => {
+      const now = new Date().toISOString();
+      const survey = {
+        id: 'menu-seed', title: 'Menu Test', description: '',
+        elements: [{ id: 'e1', type: 'short_text', title: 'Q', required: false }],
+        settings: { theme: 'default', showProgressBar: true, shuffleQuestions: false, confirmationMessage: 'x', stylePreset: 'google-forms', colorMode: 'dark', layoutMode: 'scroll' },
+        published: false, createdAt: now, updatedAt: now,
+      };
+      localStorage.setItem('survai-survey-' + survey.id, JSON.stringify(survey));
+      localStorage.setItem('survai-surveys-index', JSON.stringify([{
+        id: survey.id, title: survey.title, published: false, elementCount: 1,
+        stylePreset: 'google-forms', colorMode: 'dark',
+        createdAt: now, updatedAt: now,
+        preview: { questions: [{ title: 'Q', type: 'short_text' }] },
+      }]));
+    });
+    await page.reload();
+
+    // Three-dot menu button should be visible on each card footer
+    const menu = page.getByTitle(/More actions/i).first();
+    await expect(menu).toBeVisible();
+    await menu.click();
+
+    // Dropdown should show Open, Duplicate, Delete
+    await expect(page.getByRole('menuitem', { name: /Open/i })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /Duplicate/i })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /Delete/i })).toBeVisible();
+
+    // The old big hover overlay should NOT be present anywhere on the card
+    // (previous implementation had a fixed inset-0 bg-black/60 overlay)
+    const overlays = await page.locator('.bg-black\\/60.backdrop-blur-\\[2px\\]').count();
+    expect(overlays).toBe(0);
+  });
+
   test('survey cards render preview thumbnails with title and question bars', async ({ page }) => {
     // Seed a survey in localStorage so a card appears
     await page.goto('/test');
