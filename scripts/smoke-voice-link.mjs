@@ -17,7 +17,15 @@ mkdirSync(SCREENSHOT_DIR, { recursive: true });
 const SURVEY_WITH_AGENT = '5009c73a-01b0-47b5-bbed-79c4c7cec6f7';
 const SURVEY_WITHOUT_AGENT = 'be57e4df-a4eb-4a68-abd3-a8e45d13e1a1';
 
-const browser = await chromium.launch({ headless: true });
+// The voice CTA calls navigator.mediaDevices.getUserMedia before the
+// signed-url fetch, so we need a fake media device + granted mic perms.
+const browser = await chromium.launch({
+  headless: true,
+  args: [
+    '--use-fake-ui-for-media-stream',
+    '--use-fake-device-for-media-stream',
+  ],
+});
 const errors = [];
 
 async function step(label, fn) {
@@ -31,10 +39,10 @@ async function step(label, fn) {
   }
 }
 
-async function makePage(viewport) {
+async function makePage(viewport, { grantMic = false } = {}) {
   const ctx = await browser.newContext({
     viewport,
-    permissions: [], // deny microphone by default — forces the mic-denied path if tested
+    permissions: grantMic ? ['microphone'] : [],
   });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push('[pageerror] ' + e.message));
@@ -151,34 +159,43 @@ console.log(`→ ${BASE}`);
   await ctx.close();
 }
 
-// ── Voice click → signed-url fetch (mic-denied stub path) ────────────
+// ── Mic denied → returns to welcome with error ───────────────────────
+//
+// This covers the "user denies mic permission" path by stubbing
+// getUserMedia to reject synchronously. We *can't* reliably smoke-test
+// the happy voice path headlessly — playwright's fake media stream
+// doesn't always resolve getUserMedia, and the ElevenLabs SDK requires
+// a real audio pipeline. The happy path is verified manually in a real
+// browser against a published survey with an agent.
 {
   const { ctx, page } = await makePage({ width: 1280, height: 800 });
 
-  let signedUrlHit = false;
-  page.on('request', (req) => {
-    if (req.url().includes('/api/elevenlabs/signed-url')) signedUrlHit = true;
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: {
+        getUserMedia: () =>
+          Promise.reject(
+            Object.assign(new Error('Permission denied'), {
+              name: 'NotAllowedError',
+            })
+          ),
+      },
+      configurable: true,
+    });
   });
 
-  await step('voice CTA fetches signed-url', async () => {
+  await step('mic-denied click surfaces clear error on welcome', async () => {
     await page.goto(`${BASE}/s/${SURVEY_WITH_AGENT}`, {
       waitUntil: 'domcontentloaded',
       timeout: 30000,
     });
     await page.waitForSelector('[data-anon-cta="voice"]', { timeout: 15000 });
     await page.locator('[data-anon-cta="voice"]').click();
-    await page.waitForTimeout(1500);
-    if (!signedUrlHit) throw new Error('signed-url endpoint was not called');
-  });
-
-  // Voice session surface should mount (connecting state). In headless
-  // Chromium with no mic, the SDK will eventually hit the error path,
-  // but the component's surface should render at least briefly.
-  await step('voice session surface mounts', async () => {
-    const mounted = await page
-      .locator('[data-voice-session]')
-      .count();
-    if (mounted !== 1) throw new Error('voice session surface did not mount');
+    await page.waitForSelector('[data-anon-error]', { timeout: 5000 });
+    const msg = await page.locator('[data-anon-error]').textContent();
+    if (!msg || !/microphone/i.test(msg)) {
+      throw new Error(`expected microphone error, got: ${msg}`);
+    }
   });
 
   await ctx.close();

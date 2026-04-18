@@ -1,9 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { SurveyForm } from './survey-form';
-import { VoiceSession, type VoiceEndResult } from './voice-session';
+import { VoiceSession } from './voice-session';
 import { AnswerReadback } from './answer-readback';
+import {
+  useVoiceSession,
+  type VoiceEndResult,
+} from '@/hooks/use-voice-session';
 import { Mic, MessageSquare, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SurveyElement } from '@/types/survey';
@@ -17,44 +21,37 @@ interface SurveyData {
   agent_id?: string;
 }
 
-type PageState =
-  | 'welcome'
-  | 'voice'
-  | 'readback'
-  | 'chat'
-  | 'done'
-  | 'error';
+type PageState = 'welcome' | 'voice' | 'readback' | 'chat' | 'done';
 
 interface AnonymousSurveyProps {
   survey: SurveyData;
 }
 
 /**
- * Respondent flow for anonymous public links (/s/:id with no guest
- * token). Mirrors the guest voice experience but drops guest-specific
- * personalization: no greeting-by-name, no guest-token linking, no
- * pre-invite guard.
+ * Anonymous public-link respondent flow (/s/:id with no guest token).
+ * Mirrors the guest voice experience without guest personalization.
  *
- * Keeps the SurveyForm chat fallback so mic-denied / no-agent surveys
- * still work without a browser-side dead-end.
+ * The "Answer by voice" CTA directly triggers `useVoiceSession.start()`
+ * — this keeps the browser's user-gesture window intact so the mic
+ * permission prompt and audio autoplay both succeed on the first tap.
  */
 export function AnonymousSurvey({ survey }: AnonymousSurveyProps) {
   const [pageState, setPageState] = useState<PageState>('welcome');
   const [error, setError] = useState<string | null>(null);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [savedConversationId, setSavedConversationId] = useState<string | null>(
+    null
+  );
 
   const hasVoiceAgent = !!survey.agent_id;
   const questionCount = survey.schema.filter(
     (el) => !['section_header', 'page_break'].includes(el.type)
   ).length;
 
-  // Rough estimate: ~20s per question on voice, capped to "< 1 min" for
-  // tiny surveys and rounded to whole minutes above that.
   const estimatedMinutes = Math.max(1, Math.round((questionCount * 20) / 60));
   const estimateLabel =
     questionCount <= 3 ? 'under a minute' : `~${estimatedMinutes} min`;
 
-  const handleVoiceEnded = (result: VoiceEndResult) => {
+  const handleVoiceEnded = useCallback((result: VoiceEndResult) => {
     if (result.reason === 'mic_denied') {
       setError(
         'We need microphone access to run the voice call. You can switch to typing instead.'
@@ -67,7 +64,7 @@ export function AnonymousSurvey({ survey }: AnonymousSurveyProps) {
       result.reason === 'runtime_error'
     ) {
       setError(
-        'Voice connection failed. Try again, or answer by typing instead.'
+        `Voice connection failed${result.error ? ` (${result.error})` : ''}. Try again, or answer by typing instead.`
       );
       setPageState('welcome');
       return;
@@ -80,12 +77,29 @@ export function AnonymousSurvey({ survey }: AnonymousSurveyProps) {
       return;
     }
     if (result.conversationId) {
-      setConversationId(result.conversationId);
+      setSavedConversationId(result.conversationId);
       setPageState('readback');
     } else {
       setPageState('done');
     }
-  };
+  }, []);
+
+  const voice = useVoiceSession(handleVoiceEnded);
+
+  const handleStartVoice = useCallback(async () => {
+    if (!survey.agent_id) return;
+    setError(null);
+    setPageState('voice');
+    // The agent's first-message template references `{{guest_name}}`
+    // (added for the personalized guest flow). Anonymous respondents
+    // don't have a real name — pass a neutral default so the template
+    // resolves and the agent greeting sounds natural instead of the
+    // agent refusing to speak.
+    await voice.start({
+      agentId: survey.agent_id,
+      dynamicVariables: { guest_name: 'there' },
+    });
+  }, [survey.agent_id, voice]);
 
   // ── Done ──
   if (pageState === 'done') {
@@ -106,14 +120,14 @@ export function AnonymousSurvey({ survey }: AnonymousSurveyProps) {
   }
 
   // ── Read-back ──
-  if (pageState === 'readback' && conversationId) {
+  if (pageState === 'readback' && savedConversationId) {
     return (
       <AnswerReadback
         survey={survey}
-        conversationId={conversationId}
+        conversationId={savedConversationId}
         onSubmitted={() => setPageState('done')}
         onCancel={() => {
-          setConversationId(null);
+          setSavedConversationId(null);
           setPageState('welcome');
         }}
       />
@@ -121,13 +135,18 @@ export function AnonymousSurvey({ survey }: AnonymousSurveyProps) {
   }
 
   // ── Voice mode ──
-  if (pageState === 'voice' && survey.agent_id) {
+  if (pageState === 'voice') {
     return (
       <VoiceSession
-        agentId={survey.agent_id}
+        status={voice.status}
+        transcript={voice.transcript}
+        agentSpeaking={voice.agentSpeaking}
         totalQuestions={questionCount}
-        onEnded={handleVoiceEnded}
-        onSwitchToText={() => setPageState('chat')}
+        onEnd={voice.end}
+        onSwitchToText={async () => {
+          await voice.end();
+          setPageState('chat');
+        }}
       />
     );
   }
@@ -179,10 +198,7 @@ export function AnonymousSurvey({ survey }: AnonymousSurveyProps) {
         <div className="space-y-3">
           {hasVoiceAgent && (
             <button
-              onClick={() => {
-                setError(null);
-                setPageState('voice');
-              }}
+              onClick={handleStartVoice}
               className="w-full min-h-11 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-primary text-primary-foreground text-lg font-medium hover:bg-primary/90 transition-all active:scale-[0.98]"
               data-anon-cta="voice"
             >

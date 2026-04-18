@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { SurveyForm } from './survey-form';
-import { VoiceSession, type VoiceEndResult } from './voice-session';
+import { VoiceSession } from './voice-session';
 import { AnswerReadback } from './answer-readback';
+import {
+  useVoiceSession,
+  type VoiceEndResult,
+} from '@/hooks/use-voice-session';
 import { Mic, MessageSquare, Loader2, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SurveyElement } from '@/types/survey';
@@ -44,9 +48,9 @@ export function GuestSurvey({ surveyId, token, survey: serverSurvey }: GuestSurv
   const [pageState, setPageState] = useState<PageState>('loading');
   const [guest, setGuest] = useState<GuestData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Captured when the voice session ends cleanly — needed for the
-  // read-back screen's webhook poll.
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [savedConversationId, setSavedConversationId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     fetch(`/api/surveys/${surveyId}/guests/${token}`)
@@ -75,14 +79,16 @@ export function GuestSurvey({ surveyId, token, survey: serverSurvey }: GuestSurv
     (el) => !['section_header', 'page_break'].includes(el.type)
   ).length;
 
-  const handleVoiceEnded = (result: VoiceEndResult) => {
+  const handleVoiceEnded = useCallback((result: VoiceEndResult) => {
     if (result.reason === 'mic_denied') {
       setError('We need mic access to run the voice call. Switch to typing?');
       setPageState('welcome');
       return;
     }
     if (result.reason === 'connect_failed' || result.reason === 'runtime_error') {
-      setError('Voice connection failed. You can try again or switch to typing.');
+      setError(
+        `Voice connection failed${result.error ? ` (${result.error})` : ''}. You can try again or switch to typing.`
+      );
       setPageState('welcome');
       return;
     }
@@ -91,18 +97,28 @@ export function GuestSurvey({ surveyId, token, survey: serverSurvey }: GuestSurv
       setPageState('welcome');
       return;
     }
-    // Clean end (user_ended). If we captured a conversationId we can poll
-    // the webhook and show the read-back. Without it — e.g. the session
-    // ended before onConnect fired — skip straight to "done"; the webhook
-    // will still land the response asynchronously and the guest-linking
-    // path picks it up server-side.
     if (result.conversationId) {
-      setConversationId(result.conversationId);
+      setSavedConversationId(result.conversationId);
       setPageState('readback');
     } else {
       setPageState('done');
     }
-  };
+  }, []);
+
+  const voice = useVoiceSession(handleVoiceEnded);
+
+  const handleStartVoice = useCallback(async () => {
+    if (!serverSurvey.agent_id || !guest) return;
+    setError(null);
+    setPageState('voice');
+    await voice.start({
+      agentId: serverSurvey.agent_id,
+      // Defensive fallback — in practice the guests row always has a
+      // non-empty name, but we never want the agent's greeting template
+      // (which references {{guest_name}}) to fail to resolve.
+      dynamicVariables: { guest_name: guest.name || 'there' },
+    });
+  }, [serverSurvey.agent_id, guest, voice]);
 
   // ── Loading ──
   if (pageState === 'loading') {
@@ -142,7 +158,40 @@ export function GuestSurvey({ surveyId, token, survey: serverSurvey }: GuestSurv
     );
   }
 
-  // ── Chat mode (fallback) ──
+  // ── Read-back ──
+  if (pageState === 'readback' && savedConversationId) {
+    return (
+      <AnswerReadback
+        survey={serverSurvey}
+        conversationId={savedConversationId}
+        guestToken={token}
+        onSubmitted={() => setPageState('done')}
+        onCancel={() => {
+          setSavedConversationId(null);
+          setPageState('welcome');
+        }}
+      />
+    );
+  }
+
+  // ── Voice ──
+  if (pageState === 'voice') {
+    return (
+      <VoiceSession
+        status={voice.status}
+        transcript={voice.transcript}
+        agentSpeaking={voice.agentSpeaking}
+        totalQuestions={questionCount}
+        onEnd={voice.end}
+        onSwitchToText={async () => {
+          await voice.end();
+          setPageState('chat');
+        }}
+      />
+    );
+  }
+
+  // ── Chat mode ──
   if (pageState === 'chat') {
     return (
       <div className="min-h-screen bg-muted/30 py-8 px-4">
@@ -169,42 +218,7 @@ export function GuestSurvey({ surveyId, token, survey: serverSurvey }: GuestSurv
     );
   }
 
-  // ── Read-back mode ──
-  if (pageState === 'readback' && conversationId) {
-    return (
-      <AnswerReadback
-        survey={serverSurvey}
-        conversationId={conversationId}
-        guestToken={token}
-        onSubmitted={() => setPageState('done')}
-        onCancel={() => {
-          setConversationId(null);
-          setPageState('welcome');
-        }}
-      />
-    );
-  }
-
-  // ── Voice mode ──
-  if (pageState === 'voice') {
-    if (!serverSurvey.agent_id || !guest) {
-      // Shouldn't happen — the welcome CTA guards on hasVoiceAgent — but
-      // defend against direct state mutation anyway.
-      setPageState('welcome');
-      return null;
-    }
-    return (
-      <VoiceSession
-        agentId={serverSurvey.agent_id}
-        dynamicVariables={{ guest_name: guest.name }}
-        totalQuestions={questionCount}
-        onEnded={handleVoiceEnded}
-        onSwitchToText={() => setPageState('chat')}
-      />
-    );
-  }
-
-  // ── Welcome screen ──
+  // ── Welcome ──
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="text-center max-w-md w-full">
@@ -220,10 +234,7 @@ export function GuestSurvey({ surveyId, token, survey: serverSurvey }: GuestSurv
         <div className="space-y-3">
           {hasVoiceAgent && (
             <button
-              onClick={() => {
-                setError(null);
-                setPageState('voice');
-              }}
+              onClick={handleStartVoice}
               className="w-full min-h-11 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-primary text-primary-foreground text-lg font-medium hover:bg-primary/90 transition-all active:scale-[0.98]"
             >
               <Mic className="h-5 w-5" />
