@@ -33,7 +33,7 @@ export function TemplateRow({ onTemplateSelect, searchQuery }: TemplateRowProps)
     : templates;
 
   return (
-    <section className="px-6 py-6">
+    <section className="px-3 sm:px-6 py-6">
       <h2 className="text-sm font-medium text-muted-foreground mb-4">Start a new form</h2>
 
       <div className="flex gap-4 overflow-x-auto py-2 -mx-1 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">

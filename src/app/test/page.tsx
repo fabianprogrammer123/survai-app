@@ -66,7 +66,7 @@ export default function TestDashboard() {
         onSearchChange={setSearchQuery}
       />
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="max-w-6xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
         {/* Start-a-new-form band — distinct lighter backdrop, similar to Google Forms */}
         <div className="rounded-2xl bg-gradient-to-b from-muted/40 to-muted/10 border border-border/30 mb-8 shadow-sm">
           <TemplateRow
