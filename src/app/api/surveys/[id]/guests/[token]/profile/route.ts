@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
-import OpenAI from 'openai';
+import { getAnthropic, FAST_MODEL } from '@/lib/anthropic';
 
 /**
  * POST /api/surveys/[id]/guests/[token]/profile
@@ -49,12 +50,9 @@ export async function POST(
       .eq('id', id)
       .single();
 
-    // Generate AI profile
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json({ error: 'OpenAI not configured' }, { status: 500 });
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json({ error: 'Anthropic not configured' }, { status: 500 });
     }
-
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const answersText = Object.entries(response.answers)
       .map(([key, val]) => `- ${key}: ${val}`)
@@ -64,23 +62,24 @@ export async function POST(
       ? `Sentiment: ${response.metadata.sentiment || 'unknown'}\nExtra context: ${response.metadata.additionalContext || 'none'}`
       : '';
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+    const anthropic = getAnthropic();
+    const completion = await anthropic.messages.create({
+      model: FAST_MODEL,
+      max_tokens: 400,
+      system: 'Write a brief, warm 2-3 sentence guest profile for the host. Include key preferences, interests, and anything notable. Be helpful and concise.',
       messages: [
-        {
-          role: 'system',
-          content: 'Write a brief, warm 2-3 sentence guest profile for the host. Include key preferences, interests, and anything notable. Be helpful and concise.',
-        },
         {
           role: 'user',
           content: `Guest: ${guest.name}\nSurvey: ${survey?.title || 'Party questionnaire'}\n\nAnswers:\n${answersText}\n\n${metadataText}`,
         },
       ],
-      temperature: 0.7,
-      max_tokens: 200,
     });
 
-    const profileSummary = completion.choices[0]?.message?.content || '';
+    const profileSummary = completion.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('')
+      .trim();
 
     // Update guest with AI profile
     const profile = {

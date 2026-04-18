@@ -1,27 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import { zodResponseFormat } from 'openai/helpers/zod';
+import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { aiResponseSchema } from '@/lib/ai/schema';
 import { buildSystemPrompt } from '@/lib/ai/prompts';
 import { hydrateBlueprint } from '@/lib/templates/hydrate';
 import { DEFAULT_SETTINGS } from '@/types/survey';
-
-// Placeholder lets `next build` succeed when OPENAI_API_KEY is only a
-// runtime secret. Handlers guard before making real calls.
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'build-placeholder',
-});
+import { getAnthropic, DEFAULT_MODEL } from '@/lib/anthropic';
 
 /**
- * Test endpoint — no Supabase auth or DB persistence.
- * Simple request/response (no SSE streaming).
- * Only needs OPENAI_API_KEY in .env.local.
+ * POST /api/ai/chat/test
+ * Test endpoint — no Supabase auth or DB persistence. Used by the public
+ * /test/edit path where surveys live in localStorage, not Supabase.
+ * Backed by Claude Opus 4.7 with structured output.
  */
 export async function POST(req: NextRequest) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(
-        { error: 'OPENAI_API_KEY not configured. Add it to .env.local and restart.' },
+        { error: 'ANTHROPIC_API_KEY not configured. Add it to .env.local and restart.' },
         { status: 500 }
       );
     }
@@ -37,32 +32,28 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-      { role: 'system', content: systemPrompt },
-      ...(history || []).map((msg: { role: string; content: string }) => ({
-        role: msg.role as 'user' | 'assistant',
-        content: msg.content,
-      })),
-      { role: 'user', content: message },
+    const messages = [
+      ...(history || [])
+        .filter((m: { role: string }) => m.role === 'user' || m.role === 'assistant')
+        .map((m: { role: string; content: string }) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        })),
+      { role: 'user' as const, content: message },
     ];
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+    const anthropic = getAnthropic();
+    const response = await anthropic.messages.parse({
+      model: DEFAULT_MODEL,
+      max_tokens: 16000,
+      system: systemPrompt,
       messages,
-      response_format: zodResponseFormat(aiResponseSchema, 'survey_response'),
-      temperature: 0.3,
+      output_config: { format: zodOutputFormat(aiResponseSchema) },
     });
 
-    const raw = completion.choices[0]?.message?.content;
-    if (!raw) {
-      return NextResponse.json({ error: 'No response from AI' }, { status: 502 });
-    }
-
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      console.error('Failed to parse AI response:', raw?.slice(0, 500));
+    const parsed = response.parsed_output;
+    if (!parsed) {
+      console.error('[ai/chat/test] parse failed, stop_reason=', response.stop_reason);
       return NextResponse.json({ error: 'Invalid AI response format' }, { status: 502 });
     }
 
@@ -75,19 +66,16 @@ export async function POST(req: NextRequest) {
     }
 
     if (parsed.intent === 'propose') {
-      // Hydrate each proposal's blueprint into real elements
-      const hydratedProposals = (parsed.proposals || []).map(
-        (p: { label: string; description?: string; blueprint: Parameters<typeof hydrateBlueprint>[0] }) => {
-          const result = hydrateBlueprint(p.blueprint);
-          return {
-            label: p.label,
-            description: p.description,
-            elements: result.elements,
-            settings: result.settings,
-            blockMap: result.blockMap,
-          };
-        }
-      );
+      const hydratedProposals = (parsed.proposals || []).map((p) => {
+        const result = hydrateBlueprint(p.blueprint as Parameters<typeof hydrateBlueprint>[0]);
+        return {
+          label: p.label,
+          description: p.description ?? undefined,
+          elements: result.elements,
+          settings: result.settings,
+          blockMap: result.blockMap,
+        };
+      });
 
       return NextResponse.json({
         intent: 'propose',
@@ -97,9 +85,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (parsed.intent === 'generate') {
-      // Hydrate the blueprint into real SurveyElements
-      const result = hydrateBlueprint(parsed.blueprint);
-
+      const result = hydrateBlueprint(parsed.blueprint as Parameters<typeof hydrateBlueprint>[0]);
       return NextResponse.json({
         intent: 'generate',
         message: parsed.message,
