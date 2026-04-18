@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { AxiomMark } from '@/components/axiom-mark';
 import { useColorMode } from '@/hooks/use-color-mode';
+import { cn } from '@/lib/utils';
 
 function EditorContent() {
   // Sync color mode with <html> class (dark/light)
@@ -182,37 +183,38 @@ function EditorContent() {
         }
       />
 
-      {/* 2-panel layout */}
+      {/* 2-panel layout. On md+ the right-panel sits beside the canvas; below
+          md it becomes a fixed bottom-drawer with a tap-dismiss backdrop, and
+          a floating toggle button appears when the drawer is closed. Only one
+          <RightPanel> is rendered — its classes switch between desktop and
+          mobile layouts via Tailwind responsive utilities. */}
       <div className="relative flex flex-1 overflow-hidden">
         <EditorCanvas className="flex-1 min-w-0" />
 
-        {/* Desktop (md+): side panel */}
+        {/* Mobile backdrop (only visible when panel is open and below md) */}
+        {panelOpen && (
+          <button
+            type="button"
+            aria-label="Close AI panel"
+            onClick={togglePanel}
+            className="md:hidden fixed inset-0 z-40 bg-black/40"
+          />
+        )}
+
         {panelOpen && (
           <RightPanel
-            className="hidden md:flex md:w-[440px] md:border-l md:shrink-0 md:bg-background"
+            className={cn(
+              // Desktop: side panel
+              'md:static md:flex md:w-[440px] md:border-l md:shrink-0 md:bg-background md:inset-auto md:h-auto md:rounded-none md:shadow-none',
+              // Mobile: fixed bottom drawer
+              'fixed inset-x-0 bottom-0 z-50 h-[70vh] w-full border-t border-border rounded-t-2xl bg-background shadow-2xl'
+            )}
             aiEndpoint="/api/ai/chat/test"
             aiStreamEndpoint="/api/ai/chat/test/stream"
           />
         )}
 
-        {/* Mobile (<md): bottom-drawer panel when toggled */}
-        {panelOpen && (
-          <>
-            <button
-              type="button"
-              aria-label="Close AI panel"
-              onClick={togglePanel}
-              className="md:hidden fixed inset-0 z-40 bg-black/40"
-            />
-            <RightPanel
-              className="md:hidden fixed inset-x-0 bottom-0 z-50 h-[70vh] w-full border-t border-border rounded-t-2xl bg-background shadow-2xl"
-              aiEndpoint="/api/ai/chat/test"
-              aiStreamEndpoint="/api/ai/chat/test/stream"
-            />
-          </>
-        )}
-
-        {/* Mobile (<md): floating toggle button when panel is closed */}
+        {/* Mobile-only floating toggle button when panel is closed */}
         {!panelOpen && (
           <button
             type="button"
