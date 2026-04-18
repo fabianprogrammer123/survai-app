@@ -27,13 +27,13 @@ export function MatrixMultiRenderer({ element, mode, value = {}, onChange, onUpd
       {mode === 'editor' && onUpdate ? (
         <>
           <div className="flex items-center gap-1">
+            {element.required && <span className="text-destructive mr-1 shrink-0">*</span>}
             <InlineEditable
               value={element.title}
               onChange={(v) => onUpdate({ title: v })}
               as="title"
               placeholder="Question title"
             />
-            {element.required && <span className="text-destructive ml-1">*</span>}
           </div>
           <InlineEditable
             value={element.description || ''}
