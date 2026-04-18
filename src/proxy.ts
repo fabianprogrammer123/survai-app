@@ -2,6 +2,12 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { log } from '@/lib/log';
 import { assertServerEnv } from '@/lib/env';
+import {
+  check as checkRateLimit,
+  getClientIp,
+  isBypassed as isRateLimitBypassed,
+  ruleFor as rateLimitRuleFor,
+} from '@/lib/api/rate-limit';
 
 // Fail-fast on misconfigured production revisions. No-op in dev.
 // Runs at module load (= first cold start in serverless).
@@ -57,6 +63,40 @@ export async function proxy(request: NextRequest) {
   }
 
   const path = request.nextUrl.pathname;
+
+  // Rate-limit /api/* requests BEFORE the public fast-path so anon
+  // routes (chat demo, submit) are still throttled. Webhooks and health
+  // are exempt — third-party-origin and infrastructure-origin traffic
+  // should not share the abuse budget.
+  if (path.startsWith('/api/') && !isRateLimitBypassed(path)) {
+    const ip = getClientIp(request);
+    const rule = rateLimitRuleFor(path);
+    const result = checkRateLimit(`${path}|${ip}`, rule);
+    if (!result.ok) {
+      const retryAfterSec = Math.max(1, Math.ceil(result.resetMs / 1000));
+      log.warn({
+        event: 'rate_limit.exceeded',
+        path,
+        ip,
+        limit: result.limit,
+        retryAfterSec,
+      });
+      return NextResponse.json(
+        { error: 'Too many requests', code: 'rate_limited' },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(retryAfterSec),
+            'X-RateLimit-Limit': String(result.limit),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(
+              Math.ceil((Date.now() + result.resetMs) / 1000)
+            ),
+          },
+        }
+      );
+    }
+  }
 
   // Fast-path: public, no auth check needed (but session refresh is fine to skip)
   if (isPublic(path)) {
