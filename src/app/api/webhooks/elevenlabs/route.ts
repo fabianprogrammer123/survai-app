@@ -85,10 +85,6 @@ export async function POST(req: NextRequest) {
 
       const channel = data.metadata?.to_number ? 'phone_call' : 'web_voice';
 
-      console.log(
-        `[ElevenLabs Webhook] Captured ${Object.keys(answers).length} answers (${channel}) from conversation ${data.conversation_id}`
-      );
-
       try {
         const supabase = createServiceClient();
 
@@ -100,8 +96,36 @@ export async function POST(req: NextRequest) {
           .single();
 
         if (lookupError || !survey) {
-          console.error(`[ElevenLabs Webhook] No survey for agent_id=${data.agent_id}:`, lookupError);
+          log.error({
+            event: 'webhook.elevenlabs.survey_not_found',
+            agentId: data.agent_id,
+            error: lookupError?.message,
+          });
           return NextResponse.json({ error: 'Survey not found' }, { status: 500 });
+        }
+
+        // Idempotency pre-check: if we already persisted this conversation,
+        // return the existing response id without inserting again.
+        const conversationId = data.conversation_id;
+        if (conversationId) {
+          const { data: existing } = await supabase
+            .from('responses')
+            .select('id')
+            .filter('metadata->>conversationId', 'eq', conversationId)
+            .maybeSingle();
+          if (existing) {
+            log.info({
+              event: 'webhook.elevenlabs.duplicate',
+              conversationId,
+              surveyId: survey.id,
+              responseId: existing.id,
+            });
+            return NextResponse.json({
+              received: true,
+              duplicate: true,
+              responseId: existing.id,
+            });
+          }
         }
 
         // Insert response
@@ -117,16 +141,55 @@ export async function POST(req: NextRequest) {
           .single();
 
         if (insertError || !response) {
-          console.error('[ElevenLabs Webhook] Insert error:', insertError);
+          // 23505 = unique_violation on responses_conversation_id_unique
+          // (two webhooks arrived in the tiny race window between pre-check
+          // and insert). Look up the winner and return its id idempotently.
+          if (insertError?.code === '23505' && conversationId) {
+            const { data: winner } = await supabase
+              .from('responses')
+              .select('id')
+              .filter('metadata->>conversationId', 'eq', conversationId)
+              .maybeSingle();
+            if (winner) {
+              log.info({
+                event: 'webhook.elevenlabs.duplicate_race',
+                conversationId,
+                surveyId: survey.id,
+                responseId: winner.id,
+              });
+              return NextResponse.json({
+                received: true,
+                duplicate: true,
+                responseId: winner.id,
+              });
+            }
+          }
+          log.error({
+            event: 'webhook.elevenlabs.insert_failed',
+            surveyId: survey.id,
+            conversationId,
+            error: insertError?.message,
+            code: insertError?.code,
+          });
           return NextResponse.json({ error: 'Response insert failed' }, { status: 500 });
         }
 
-        console.log(`[ElevenLabs Webhook] Response ${response.id} saved to survey ${survey.id}`);
+        log.info({
+          event: 'webhook.elevenlabs.persisted',
+          responseId: response.id,
+          surveyId: survey.id,
+          conversationId,
+          channel,
+          answerCount: Object.keys(answers).length,
+        });
 
         // Try to link to a guest and generate profile
         await linkResponseToGuest(supabase, survey.id, response.id, data, answers, metadata);
       } catch (dbErr) {
-        console.warn('[ElevenLabs Webhook] DB persistence skipped:', dbErr);
+        log.warn({
+          event: 'webhook.elevenlabs.db_skipped',
+          error: dbErr instanceof Error ? dbErr.message : String(dbErr),
+        });
       }
     }
 
