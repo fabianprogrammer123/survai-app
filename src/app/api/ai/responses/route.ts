@@ -3,8 +3,10 @@ import OpenAI from 'openai';
 import type { SurveyElement } from '@/types/survey';
 import { nanoid } from 'nanoid';
 
+// Placeholder lets `next build` succeed when OPENAI_API_KEY is only a
+// runtime secret. Handlers guard before making real calls.
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || 'build-placeholder',
 });
 
 /**

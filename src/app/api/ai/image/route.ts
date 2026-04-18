@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI();
+// Placeholder lets `next build` succeed when OPENAI_API_KEY is only a
+// runtime secret. Handlers guard before making real calls.
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || 'build-placeholder',
+});
 
 export async function POST(req: Request) {
   try {

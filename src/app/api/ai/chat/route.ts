@@ -7,8 +7,11 @@ import { hydrateBlueprint } from '@/lib/templates/hydrate';
 import { createClient } from '@/lib/supabase/server';
 import { DEFAULT_SETTINGS } from '@/types/survey';
 
+// Lazy-safe init: placeholder lets `next build` page-data collection succeed
+// when the real key is only available at runtime (Secret Manager on Cloud Run).
+// Handlers still guard on process.env.OPENAI_API_KEY before making calls.
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || 'build-placeholder',
 });
 
 export async function POST(req: NextRequest) {
