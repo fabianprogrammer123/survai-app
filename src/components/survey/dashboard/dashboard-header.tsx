@@ -1,7 +1,7 @@
 'use client';
 
 import { AxiomMark } from '@/components/axiom-mark';
-import { Search, Settings } from 'lucide-react';
+import { LayoutGrid, Search, Settings } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,6 +43,10 @@ export function DashboardHeader({ searchQuery, onSearchChange }: DashboardHeader
         <div className="flex items-center gap-3 shrink-0">
           <button className="p-2 rounded-lg hover:bg-muted/60 transition-colors" title="Settings">
             <Settings className="h-5 w-5 text-muted-foreground/60 hover:text-muted-foreground" />
+          </button>
+
+          <button className="p-2 rounded-lg hover:bg-muted/60 transition-colors" title="Axiom apps">
+            <LayoutGrid className="h-5 w-5 text-muted-foreground/60 hover:text-muted-foreground" />
           </button>
 
           {/* Profile avatar */}

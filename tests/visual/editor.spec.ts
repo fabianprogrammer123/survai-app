@@ -436,6 +436,12 @@ test.describe('/test editor — smoke', () => {
     expect(hasColoredBand).toBeGreaterThan(0);
   });
 
+  test('dashboard header has settings + apps-grid icons', async ({ page }) => {
+    await page.goto('/test');
+    await expect(page.getByTitle(/Settings/i)).toBeVisible();
+    await expect(page.getByTitle(/Axiom apps/i)).toBeVisible();
+  });
+
   test('survey cards render preview thumbnails with title and question bars', async ({ page }) => {
     // Seed a survey in localStorage so a card appears
     await page.goto('/test');
