@@ -296,10 +296,19 @@ export function buildAgentConfig(
       },
       conversation: {
         max_duration_seconds: 300,
+        // IMPORTANT: 'audio' must be included for web/WebSocket respondents
+        // to actually HEAR the agent. Without it the server generates TTS
+        // but never forwards the PCM chunks to the browser — text transcript
+        // arrives, `isSpeaking` stays false, no sound plays.
+        // Also subscribe to 'interruption' / 'ping' so the SDK can handle
+        // barge-in and keep-alive cleanly.
         client_events: [
           'conversation_initiation_metadata',
           'agent_response',
           'user_transcript',
+          'audio',
+          'interruption',
+          'ping',
         ],
       },
     },
