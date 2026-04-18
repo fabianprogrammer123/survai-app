@@ -1,32 +1,20 @@
 'use client';
 
 import { SURVEY_TEMPLATES } from '@/lib/templates/surveys';
-import {
-  Smile,
-  Users,
-  Calendar,
-  Package,
-  Search,
-  GraduationCap,
-  Globe,
-  DoorOpen,
-  MessageSquare,
-  Plus,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { getBlockTemplate } from '@/lib/templates/blocks';
+import { Plus } from 'lucide-react';
+import { MiniFormPreview } from './mini-form-preview';
 
-const ICON_MAP: Record<string, LucideIcon> = {
-  Smile,
-  Users,
-  Calendar,
-  Package,
-  Search,
-  GraduationCap,
-  Globe,
-  DoorOpen,
-  MessageSquare,
-  Plus,
-};
+// Cycle through a pleasant palette for template accent colors, derived by index.
+// Inspired by Google's material accent palette used on Forms template cards.
+const ACCENT_PALETTE = [
+  '#673ab7', // purple
+  '#0b8043', // green
+  '#4285f4', // blue
+  '#e37400', // orange
+  '#db4437', // red
+  '#3367d6', // deep blue
+];
 
 interface TemplateRowProps {
   onTemplateSelect: (templateId: string) => void;
@@ -61,20 +49,43 @@ export function TemplateRow({ onTemplateSelect, searchQuery }: TemplateRowProps)
         </button>
 
         {/* Template cards */}
-        {filtered.map((template) => {
-          const Icon = ICON_MAP[template.icon] || MessageSquare;
+        {filtered.map((template, idx) => {
+          // Derive preview questions: resolve each block reference to its block
+          // template, apply overrides, and collect the first three that have a
+          // real question-like type (skip section headers / page breaks if possible).
+          const previewQuestions: { title: string; type: string }[] = template.blocks
+            .map((b) => {
+              const block = getBlockTemplate(b.blockId);
+              if (!block) return null;
+              const title = b.overrides?.title ?? block.defaults.title ?? '';
+              const type: string = block.elementType ?? 'short_text';
+              return { title, type };
+            })
+            .filter((q): q is { title: string; type: string } => q !== null)
+            .filter((q) => q.type !== 'section_header' && q.type !== 'page_break')
+            .slice(0, 3);
+
+          const accentColor = ACCENT_PALETTE[idx % ACCENT_PALETTE.length];
+
           return (
             <button
               key={template.templateId}
               onClick={() => onTemplateSelect(template.templateId)}
-              className="shrink-0 w-[150px] h-[180px] rounded-xl border border-border/50 bg-card flex flex-col items-center justify-center gap-2.5 px-3 cursor-pointer transition-all duration-200 hover:border-primary/40 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/15"
+              className="shrink-0 w-[150px] h-[180px] rounded-xl border border-border/50 bg-card overflow-hidden cursor-pointer transition-all duration-200 hover:border-primary/40 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/15"
             >
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Icon className="h-5 w-5 text-primary" />
+              {/* Preview takes top portion */}
+              <div className="h-[130px] bg-background">
+                <MiniFormPreview
+                  title={template.label}
+                  questions={previewQuestions}
+                  accentColor={accentColor}
+                  bgColor="#f6f8fb"
+                />
               </div>
-              <div className="text-center">
-                <p className="text-xs font-medium text-foreground line-clamp-1">{template.label}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{template.estimatedTime}</p>
+              {/* Footer */}
+              <div className="px-2.5 py-2 flex flex-col">
+                <p className="text-xs font-medium text-foreground line-clamp-1 text-left">{template.label}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 text-left">{template.estimatedTime}</p>
               </div>
             </button>
           );

@@ -423,4 +423,16 @@ test.describe('/test editor — smoke', () => {
     });
     expect(bandParent).toBeTruthy();
   });
+
+  test('template cards render mini-form previews', async ({ page }) => {
+    await page.goto('/test');
+    // At least one non-blank template should render a preview structure
+    // Pick the first template card that is NOT "Blank form"
+    const firstTemplate = page.locator('button[class*="shrink-0 w-[150px]"]').nth(1);
+    await expect(firstTemplate).toBeVisible();
+    // The preview structure uses a colored top band — assert at least one
+    // element with inline style background exists within the card
+    const hasColoredBand = await firstTemplate.locator('div[style*="background"]').count();
+    expect(hasColoredBand).toBeGreaterThan(0);
+  });
 });
