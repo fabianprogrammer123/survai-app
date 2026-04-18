@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { SurveyForm } from '@/components/survey/response/survey-form';
+import { AnonymousSurvey } from '@/components/survey/response/anonymous-survey';
 import { GuestSurvey } from '@/components/survey/response/guest-survey';
 import { notFound } from 'next/navigation';
 
@@ -25,17 +25,13 @@ export default async function PublicSurveyPage({
     notFound();
   }
 
-  // If there's an invite token, render the personalized voice-first experience
+  // Pre-invited guest — personalized voice-first flow.
   if (token) {
     return <GuestSurvey surveyId={id} token={token} survey={survey} />;
   }
 
-  // Default: standard form for anonymous respondents
-  return (
-    <div className="min-h-screen bg-muted/30 py-6 sm:py-8 px-3 sm:px-4">
-      <div className="mx-auto max-w-2xl">
-        <SurveyForm survey={survey} />
-      </div>
-    </div>
-  );
+  // Anonymous public link — voice-or-typing landing. The component itself
+  // falls back to the plain SurveyForm for respondents who pick typing or
+  // for surveys without a published voice agent.
+  return <AnonymousSurvey survey={survey} />;
 }
