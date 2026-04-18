@@ -22,8 +22,13 @@ export function InlineEditable({
   placeholder,
   className,
 }: InlineEditableProps) {
+  // No background, no ring, no outline — editable text reads as plain text
+  // at rest and shows only the text caret when focused. The `appearance-none`
+  // + `!bg-transparent` defeat Chromium's dark-mode user-agent stylesheet
+  // which would otherwise apply a subtle background fill that creates a
+  // shaded rectangle visually clashing with the element-type badge.
   const baseClasses =
-    'bg-transparent border-none outline-none w-full rounded px-1 -mx-1 transition-colors focus:bg-muted/30 focus:ring-1 focus:ring-primary/20';
+    'appearance-none !bg-transparent border-none outline-none focus:outline-none w-full px-1 -mx-1 transition-colors';
 
   if (as === 'heading') {
     return (

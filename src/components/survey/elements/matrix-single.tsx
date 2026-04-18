@@ -53,14 +53,26 @@ export function MatrixSingleRenderer({ element, mode, value = {}, onChange, onUp
       )}
 
       <div className="overflow-x-auto -mx-2 px-2" data-matrix-single>
-        <table className="w-full text-sm border-collapse min-w-[420px]">
+        <table
+          className="w-full text-sm border-collapse min-w-[420px]"
+          style={{ tableLayout: 'fixed' }}
+        >
+          <colgroup>
+            {/* First column (row labels) gets a fixed width; the remaining
+                value columns split the rest equally so radio dots are
+                evenly spaced regardless of header text length. */}
+            <col style={{ width: '35%' }} />
+            {element.columns.map((_, ci) => (
+              <col key={ci} style={{ width: `${65 / element.columns.length}%` }} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
               <th className="text-left pb-2 pr-3 font-normal text-muted-foreground"></th>
               {element.columns.map((col, ci) => (
                 <th
                   key={ci}
-                  className="pb-2 px-2 font-normal text-xs text-muted-foreground text-center"
+                  className="pb-2 px-2 font-normal text-xs text-muted-foreground text-center break-words"
                 >
                   {col}
                 </th>
