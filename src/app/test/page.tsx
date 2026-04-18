@@ -66,14 +66,16 @@ export default function TestDashboard() {
         onSearchChange={setSearchQuery}
       />
 
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-10">
-        {/* Template Gallery */}
-        <TemplateRow
-          onTemplateSelect={handleTemplateSelect}
-          searchQuery={searchQuery}
-        />
+      <main className="max-w-6xl mx-auto px-6 py-8">
+        {/* Start-a-new-form band — distinct lighter backdrop, similar to Google Forms */}
+        <div className="rounded-2xl bg-gradient-to-b from-muted/40 to-muted/10 border border-border/30 mb-8 shadow-sm">
+          <TemplateRow
+            onTemplateSelect={handleTemplateSelect}
+            searchQuery={searchQuery}
+          />
+        </div>
 
-        {/* Recent Surveys */}
+        {/* Recent forms section */}
         <SurveyGrid
           surveys={surveys}
           searchQuery={searchQuery}

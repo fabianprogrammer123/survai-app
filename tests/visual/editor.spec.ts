@@ -402,4 +402,25 @@ test.describe('/test editor — smoke', () => {
     expect(font).not.toMatch(/^"dm sans/);
     expect(font).not.toMatch(/^dm sans/);
   });
+
+  test('dashboard has distinct start-a-new-form band', async ({ page }) => {
+    await page.goto('/test');
+    // The "Start a new form" heading must be visible
+    await expect(page.getByText(/Start a new form/i)).toBeVisible();
+    // Blank form card visible
+    await expect(page.getByText(/Blank form/i).first()).toBeVisible();
+    // A distinct background element wraps the template row — grab its parent
+    // and assert it has a non-transparent background
+    const bandParent = await page.getByText(/Start a new form/i).evaluate((el) => {
+      // walk up to find an element with a computed background different from default
+      let node: HTMLElement | null = el.parentElement;
+      for (let i = 0; i < 5 && node; i++) {
+        const bg = window.getComputedStyle(node).backgroundColor;
+        if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return bg;
+        node = node.parentElement;
+      }
+      return null;
+    });
+    expect(bandParent).toBeTruthy();
+  });
 });
