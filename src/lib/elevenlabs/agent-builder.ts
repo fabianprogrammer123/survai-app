@@ -47,6 +47,27 @@ function describeElement(el: SurveyElement, index: number): string {
     case 'file_upload':
       return `${num}. "${el.title}"${req} — ask them to describe it verbally`;
 
+    case 'nps':
+      return `${num}. "${el.title}"${req} — rate on a scale of 0 to 10${el.minLabel ? ` (0 = ${el.minLabel}` : ''}${el.maxLabel ? `, 10 = ${el.maxLabel})` : ')'}`;
+
+    case 'slider':
+      return `${num}. "${el.title}"${req} — a number from ${el.min} to ${el.max}${el.unit ? ` ${el.unit}` : ''}${el.minLabel ? ` (${el.min} = ${el.minLabel}` : ''}${el.maxLabel ? `, ${el.max} = ${el.maxLabel})` : ')'}`;
+
+    case 'matrix_single':
+      return `${num}. "${el.title}"${req} — ask ONE BY ONE, for each row, they pick ONE from the options. Rows: ${el.rows.map((r) => `"${r}"`).join(', ')}. Options: ${el.columns.join(', ')}.`;
+
+    case 'matrix_multi':
+      return `${num}. "${el.title}"${req} — ask ONE BY ONE, for each row, they pick ANY that apply. Rows: ${el.rows.map((r) => `"${r}"`).join(', ')}. Options: ${el.columns.join(', ')}.`;
+
+    case 'likert':
+      return `${num}. "${el.title}"${req} — ${el.scale}-point agreement scale (1 = strongly disagree, ${el.scale} = strongly agree). Ask each row one by one: ${el.rows.map((r) => `"${r}"`).join(', ')}.`;
+
+    case 'ranking':
+      return `${num}. "${el.title}"${req} — they put these in order, most to least: ${el.items.join(', ')}. All ${el.items.length} items must be ranked.`;
+
+    case 'image_choice':
+      return `${num}. "${el.title}"${req} — ${el.multiSelect ? 'pick any' : 'pick one'} of: ${el.options.map((o) => o.label).join(', ')}. (Images aren't visible on voice — read out the labels.)`;
+
     default: {
       const _el = el as SurveyElement;
       return `${num}. "${_el.title}"${req}`;
@@ -158,6 +179,61 @@ function buildDataCollection(
           description: `For: "${el.title}" — capture verbal description or "skipped".`,
         };
         break;
+
+      case 'nps':
+        fields[el.id] = {
+          type: 'number',
+          description: `NPS rating for: "${el.title}". Whole number 0 to 10.${el.required ? ' Required.' : ''}`,
+        };
+        break;
+
+      case 'slider':
+        fields[el.id] = {
+          type: 'number',
+          description: `Numeric value for: "${el.title}". Number from ${el.min} to ${el.max}${el.unit ? ` ${el.unit}` : ''}.${el.required ? ' Required.' : ''}`,
+        };
+        break;
+
+      case 'matrix_single':
+        el.rows.forEach((rowText, i) => {
+          fields[`${el.id}__row${i}`] = {
+            type: 'string',
+            description: `For "${el.title}" → row "${rowText}": one of ${el.columns.join(', ')}.`,
+          };
+        });
+        break;
+
+      case 'matrix_multi':
+        el.rows.forEach((rowText, i) => {
+          fields[`${el.id}__row${i}`] = {
+            type: 'string',
+            description: `For "${el.title}" → row "${rowText}": selections from ${el.columns.join(', ')}, comma-separated.`,
+          };
+        });
+        break;
+
+      case 'likert':
+        el.rows.forEach((rowText, i) => {
+          fields[`${el.id}__row${i}`] = {
+            type: 'number',
+            description: `For "${el.title}" → statement "${rowText}": rating 1 (strongly disagree) to ${el.scale} (strongly agree).`,
+          };
+        });
+        break;
+
+      case 'ranking':
+        fields[el.id] = {
+          type: 'string',
+          description: `Ranking for: "${el.title}". Return ALL items from most to least preferred, comma-separated, exactly as labelled: ${el.items.join(', ')}.${el.required ? ' Required.' : ''}`,
+        };
+        break;
+
+      case 'image_choice':
+        fields[el.id] = {
+          type: 'string',
+          description: `Choice for: "${el.title}". ${el.multiSelect ? 'Comma-separated selections' : 'One'} from: ${el.options.map((o) => o.label).join(', ')}.${el.required ? ' Required.' : ''}`,
+        };
+        break;
     }
   }
 
@@ -243,24 +319,56 @@ export function buildAgentConfig(
 
 /**
  * Convert ElevenLabs Data Collection results back into a SurveyResponseData.answers map.
+ *
+ * Handles three output shapes:
+ * - Scalar answers → `answers[elementId] = value` (short_text, long_text,
+ *   single-choice, linear_scale, nps, slider, date, image_choice, file_upload).
+ * - Checkbox / image_choice-multi / ranking → comma-separated string is split
+ *   into an array of trimmed strings.
+ * - Matrix / likert rows → fields keyed `elementId__row{N}` are regrouped into
+ *   a per-element array indexed by row order. Multi-select matrix rows whose
+ *   values are themselves comma-separated get split into inner arrays.
  */
 export function dataCollectionToAnswers(
   results: Record<string, { value: string | boolean | number | null }>
 ): Record<string, unknown> {
   const answers: Record<string, unknown> = {};
+  const rowGroups: Record<string, unknown[]> = {};
+
+  const ROW_KEY = /^(.+)__row(\d+)$/;
 
   for (const [key, result] of Object.entries(results)) {
     // Skip metadata fields
     if (['respondent_name', 'survey_completed', 'respondent_sentiment', 'additional_context'].includes(key)) continue;
-
     if (result.value === null || result.value === '') continue;
 
-    // For checkboxes (comma-separated string → array)
-    if (typeof result.value === 'string' && result.value.includes(', ')) {
-      answers[key] = result.value.split(', ').map((s) => s.trim());
+    // Matrix / likert row field: elementId__row{N}
+    const rowMatch = key.match(ROW_KEY);
+    if (rowMatch) {
+      const [, elId, idxStr] = rowMatch;
+      const idx = parseInt(idxStr, 10);
+      const bucket = (rowGroups[elId] ||= []);
+      // matrix_multi rows come back as comma-separated; split them so the
+      // frontend sees an array per row. Likert/matrix_single stay scalar.
+      const rowValue =
+        typeof result.value === 'string' && result.value.includes(',')
+          ? result.value.split(',').map((s) => s.trim()).filter(Boolean)
+          : result.value;
+      bucket[idx] = rowValue;
+      continue;
+    }
+
+    // Checkboxes, ranking, image_choice-multi → comma-separated → array
+    if (typeof result.value === 'string' && result.value.includes(',')) {
+      answers[key] = result.value.split(',').map((s) => s.trim()).filter(Boolean);
     } else {
       answers[key] = result.value;
     }
+  }
+
+  // Attach grouped matrix/likert answers.
+  for (const [elId, rowArr] of Object.entries(rowGroups)) {
+    answers[elId] = rowArr;
   }
 
   return answers;

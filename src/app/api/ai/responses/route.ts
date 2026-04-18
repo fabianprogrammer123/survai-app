@@ -33,10 +33,11 @@ export async function POST(req: NextRequest) {
 
     const questionDescriptions = answerable.map((el, i) => {
       let desc = `Q${i + 1} (id: "${el.id}", type: ${el.type}): "${el.title}"`;
-      if (el.type === 'multiple_choice' || el.type === 'checkboxes' || el.type === 'dropdown') {
-        const opts = 'options' in el ? el.options : [];
-        desc += ` | Options: ${opts.map((o) => `"${o}"`).join(', ')}`;
-        if (el.type === 'checkboxes') desc += ' | (select 1-3)';
+      if (el.type === 'multiple_choice' || el.type === 'dropdown') {
+        desc += ` | Options: ${el.options.map((o) => `"${o}"`).join(', ')}`;
+      }
+      if (el.type === 'checkboxes') {
+        desc += ` | Options: ${el.options.map((o) => `"${o}"`).join(', ')} | (select 1-3)`;
       }
       if (el.type === 'linear_scale') {
         desc += ` | Scale: ${el.min}-${el.max}`;
@@ -46,6 +47,25 @@ export async function POST(req: NextRequest) {
       if (el.type === 'short_text') desc += ' | (short answer, 2-8 words)';
       if (el.type === 'long_text') desc += ' | (detailed answer, 1-3 sentences)';
       if (el.type === 'date') desc += ' | (ISO date within last 30 days)';
+      if (el.type === 'nps') desc += ` | NPS 0-10${el.minLabel ? ` (0=${el.minLabel}` : ''}${el.maxLabel ? `, 10=${el.maxLabel})` : ')'}`;
+      if (el.type === 'slider') {
+        desc += ` | Number ${el.min}-${el.max}${el.unit ? ` ${el.unit}` : ''}${el.step ? ` (step ${el.step})` : ''}`;
+      }
+      if (el.type === 'matrix_single') {
+        desc += ` | Rows: ${el.rows.map((r) => `"${r}"`).join(', ')} | Columns: ${el.columns.map((c) => `"${c}"`).join(', ')}`;
+      }
+      if (el.type === 'matrix_multi') {
+        desc += ` | Rows: ${el.rows.map((r) => `"${r}"`).join(', ')} | Columns: ${el.columns.map((c) => `"${c}"`).join(', ')} | (each row: array of 1-3 columns)`;
+      }
+      if (el.type === 'likert') {
+        desc += ` | Rows: ${el.rows.map((r) => `"${r}"`).join(', ')} | Scale: 1-${el.scale}`;
+      }
+      if (el.type === 'ranking') {
+        desc += ` | Items to rank: ${el.items.map((it) => `"${it}"`).join(', ')}`;
+      }
+      if (el.type === 'image_choice') {
+        desc += ` | Options: ${el.options.map((o) => `"${o.label}"`).join(', ')}${el.multiSelect ? ' | (array of 1-2 options)' : ''}`;
+      }
       return desc;
     });
 
@@ -74,6 +94,13 @@ Value formats per question type:
 - short_text: a short string (2-8 words)
 - long_text: a detailed string (1-3 sentences)
 - date: ISO date string (YYYY-MM-DD) within the last 30 days
+- nps: a whole number 0-10 (bias toward 7-9 for typical products, but include some detractors)
+- slider: a number in the specified range (can be integer or decimal based on step)
+- matrix_single: an ARRAY indexed by row — each entry is a column label string, e.g. ["Good", "OK", "Good"]
+- matrix_multi: an ARRAY indexed by row — each entry is an ARRAY of column labels, e.g. [["A", "B"], ["A"]]
+- likert: an ARRAY indexed by row — each entry is a number 1..scale
+- ranking: an ARRAY of all item labels in preferred order, most-preferred first
+- image_choice: a single label string, OR (if multiSelect) an array of labels
 
 Guidelines:
 - Use weighted distributions (not uniform random) — most real surveys have natural clustering
