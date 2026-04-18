@@ -50,6 +50,7 @@ export function ShortTextRenderer({ element, mode, value, onChange, onUpdate }: 
         readOnly={mode === 'preview'}
         value={mode === 'response' ? (value || '') : ''}
         onChange={(e) => onChange?.(e.target.value)}
+        className={mode === 'response' ? 'h-11 sm:h-10 text-base' : undefined}
       />
     </div>
   );

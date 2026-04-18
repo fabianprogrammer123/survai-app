@@ -87,12 +87,12 @@ export function SurveyForm({ survey, guestToken }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} data-survey-form-response="true">
       <Card className="mb-4 border-t-4 border-t-primary">
-        <CardHeader>
-          <CardTitle className="text-2xl">{survey.title}</CardTitle>
+        <CardHeader className="px-4 sm:px-6">
+          <CardTitle className="text-xl sm:text-2xl break-words">{survey.title}</CardTitle>
           {survey.description && (
-            <CardDescription>{survey.description}</CardDescription>
+            <CardDescription className="break-words">{survey.description}</CardDescription>
           )}
         </CardHeader>
       </Card>
@@ -100,7 +100,7 @@ export function SurveyForm({ survey, guestToken }: Props) {
       <div className="space-y-4">
         {elements.map((element) => (
           <Card key={element.id}>
-            <CardContent className="pt-6">
+            <CardContent className="pt-6 px-4 sm:px-6">
               <ElementRenderer
                 element={element}
                 mode="response"
@@ -118,8 +118,12 @@ export function SurveyForm({ survey, guestToken }: Props) {
         </div>
       )}
 
-      <div className="mt-6">
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
+      <div className="mt-6 flex justify-center sm:justify-start">
+        <Button
+          type="submit"
+          className="w-full sm:w-auto min-h-11 px-6"
+          disabled={isSubmitting}
+        >
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

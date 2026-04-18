@@ -32,7 +32,7 @@ export default async function PublicSurveyPage({
 
   // Default: standard form for anonymous respondents
   return (
-    <div className="min-h-screen bg-muted/30 py-8 px-4">
+    <div className="min-h-screen bg-muted/30 py-6 sm:py-8 px-3 sm:px-4">
       <div className="mx-auto max-w-2xl">
         <SurveyForm survey={survey} />
       </div>

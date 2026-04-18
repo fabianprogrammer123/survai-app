@@ -55,12 +55,13 @@ export function CheckboxesRenderer({ element, mode, value = [], onChange, onUpda
       )}
       <div className="space-y-2">
         {element.options.map((option, i) => (
-          <div key={i} className="flex items-center space-x-2 group/option">
+          <div key={i} className="flex items-start space-x-2 group/option py-1.5 min-h-11">
             <Checkbox
               id={`${element.id}-${i}`}
               checked={value.includes(option)}
               onCheckedChange={(checked) => handleToggle(option, !!checked)}
               disabled={mode === 'editor'}
+              className="mt-0.5 shrink-0"
             />
             {mode === 'editor' && onUpdate ? (
               <>
@@ -93,7 +94,10 @@ export function CheckboxesRenderer({ element, mode, value = [], onChange, onUpda
                 )}
               </>
             ) : (
-              <Label htmlFor={`${element.id}-${i}`} className="font-normal">
+              <Label
+                htmlFor={`${element.id}-${i}`}
+                className="font-normal break-words whitespace-normal leading-relaxed flex-1 cursor-pointer"
+              >
                 {option}
               </Label>
             )}

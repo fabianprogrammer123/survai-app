@@ -57,10 +57,10 @@ export default async function PreviewSurveyPage({
   };
 
   return (
-    <div className="min-h-screen bg-muted/30 py-8 px-4">
+    <div className="min-h-screen bg-muted/30 py-6 sm:py-8 px-3 sm:px-4">
       <div className="mx-auto max-w-2xl">
         <div
-          className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-700 dark:text-amber-400"
+          className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 sm:px-4 py-2 text-xs text-amber-700 dark:text-amber-400"
           data-preview-notice="true"
         >
           Preview link — this is a shareable demo. Responses are not saved to a database yet.

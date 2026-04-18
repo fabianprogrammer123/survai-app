@@ -51,8 +51,13 @@ export function MultipleChoiceRenderer({ element, mode, value, onChange, onUpdat
         className="space-y-2"
       >
         {element.options.map((option, i) => (
-          <div key={i} className="flex items-center space-x-2 group/option">
-            <RadioGroupItem value={option} id={`${element.id}-${i}`} disabled={mode === 'editor'} />
+          <div key={i} className="flex items-start space-x-2 group/option py-1.5 min-h-11">
+            <RadioGroupItem
+              value={option}
+              id={`${element.id}-${i}`}
+              disabled={mode === 'editor'}
+              className="mt-0.5 shrink-0"
+            />
             {mode === 'editor' && onUpdate ? (
               <>
                 <input
@@ -84,7 +89,10 @@ export function MultipleChoiceRenderer({ element, mode, value, onChange, onUpdat
                 )}
               </>
             ) : (
-              <Label htmlFor={`${element.id}-${i}`} className="font-normal">
+              <Label
+                htmlFor={`${element.id}-${i}`}
+                className="font-normal break-words whitespace-normal leading-relaxed flex-1 cursor-pointer"
+              >
                 {option}
               </Label>
             )}

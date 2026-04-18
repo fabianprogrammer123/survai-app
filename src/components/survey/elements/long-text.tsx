@@ -51,6 +51,7 @@ export function LongTextRenderer({ element, mode, value, onChange, onUpdate }: P
         value={mode === 'response' ? (value || '') : ''}
         onChange={(e) => onChange?.(e.target.value)}
         rows={4}
+        className={mode === 'response' ? 'text-base' : undefined}
       />
     </div>
   );

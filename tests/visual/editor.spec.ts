@@ -550,3 +550,80 @@ test.describe('/test editor — smoke', () => {
     // (we assert the card exists; the preview rendering is visual)
   });
 });
+
+test.describe('/s/preview mobile', () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  test('preview respondent view has no horizontal scroll on mobile', async ({ page }) => {
+    // Build a valid base64 survey data URL
+    const surveyJson = JSON.stringify({
+      id: 'mobile-test',
+      title: 'Mobile Survey',
+      description: 'Testing mobile responsiveness',
+      elements: [
+        { id: 'e1', type: 'short_text', title: 'Name', required: true },
+        { id: 'e2', type: 'linear_scale', title: 'Rating', required: true, min: 1, max: 5, minLabel: 'Low', maxLabel: 'High' },
+        { id: 'e3', type: 'multiple_choice', title: 'Team', required: false, options: ['Engineering', 'Design', 'Product Management', 'Customer Success'] },
+      ],
+      settings: { theme: 'default', showProgressBar: true, shuffleQuestions: false, confirmationMessage: 'Thanks', stylePreset: 'google-forms', colorMode: 'light', layoutMode: 'scroll' },
+      published: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    const bytes = new TextEncoder().encode(surveyJson);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const b64 = Buffer.from(binary, 'binary').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    await page.goto('/s/preview/' + b64);
+
+    await expect(page.getByText(/Mobile Survey/i)).toBeVisible();
+
+    // No horizontal scroll — document scrollWidth should not exceed viewport width
+    const dims = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    expect(dims.scrollWidth).toBeLessThanOrEqual(dims.clientWidth + 1);
+
+    await page.screenshot({ path: 'tests/visual/.artifacts/mobile-respondent.png', fullPage: true });
+  });
+});
+
+test.describe('/test dashboard mobile', () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  test('dashboard at 375px has no horizontal scroll', async ({ page }) => {
+    await page.goto('/test');
+    await expect(page.getByText(/Start a new form/i)).toBeVisible();
+    const dims = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    expect(dims.scrollWidth).toBeLessThanOrEqual(dims.clientWidth + 1);
+    await page.screenshot({ path: 'tests/visual/.artifacts/mobile-dashboard.png', fullPage: true });
+  });
+});
+
+test.describe('/test/edit mobile', () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  test('editor at 375px renders canvas without horizontal scroll', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+
+    // The canvas title input should be visible
+    await expect(page.locator('input[placeholder="Untitled Survey"]')).toBeVisible({ timeout: 5000 });
+
+    // No horizontal scroll
+    const dims = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    expect(dims.scrollWidth).toBeLessThanOrEqual(dims.clientWidth + 5); // small slack for scroll gutter
+
+    await page.screenshot({ path: 'tests/visual/.artifacts/mobile-editor.png', fullPage: false });
+  });
+});

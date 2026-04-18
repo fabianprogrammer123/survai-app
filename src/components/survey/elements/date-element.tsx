@@ -50,7 +50,7 @@ export function DateRenderer({ element, mode, value, onChange, onUpdate }: Props
         readOnly={mode === 'preview'}
         value={mode === 'response' ? (value || '') : ''}
         onChange={(e) => onChange?.(e.target.value)}
-        className="w-auto"
+        className={mode === 'response' ? 'w-full sm:w-auto h-11 sm:h-10 text-base' : 'w-auto'}
       />
     </div>
   );

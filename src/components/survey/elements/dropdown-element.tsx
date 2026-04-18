@@ -71,7 +71,7 @@ export function DropdownRenderer({ element, mode, value, onChange, onUpdate }: P
           onValueChange={(v) => { if (v !== null) onChange?.(v); }}
           disabled={mode === 'editor'}
         >
-          <SelectTrigger>
+          <SelectTrigger className={mode === 'response' ? 'h-11 sm:h-10 text-base' : undefined}>
             <SelectValue placeholder="Select an option" />
           </SelectTrigger>
           <SelectContent>
