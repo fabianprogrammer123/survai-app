@@ -34,15 +34,18 @@ export function SurveyCard({ survey, onDuplicate, onDelete }: SurveyCardProps) {
       onClick={() => router.push(`/test/edit?id=${survey.id}`)}
       className="group relative rounded-xl border border-border/50 bg-card overflow-hidden cursor-pointer transition-all duration-200 hover:border-border/80 hover:shadow-lg hover:shadow-black/20 hover:-translate-y-0.5"
     >
-      {/* Accent top strip */}
-      <div className="h-2" style={{ background: accent }} />
-
       {/* Preview area — actual mini form. No title is passed to the preview
           because the card footer already renders the survey title; showing
           it inside the preview too created a "double title" visual
           illusion. The preview uses 'real' mode so the user sees each
           question's actual text and type-shaped input stub instead of
-          abstract silhouette bars. */}
+          abstract silhouette bars.
+
+          NOTE: the previous outer accent strip (h-2, colored) was removed
+          because MiniFormPreview (in 'real' mode) already renders its
+          own accent band at the top of the preview area. The card's
+          rounded-xl + overflow-hidden on the outer wrapper clips the
+          preview's corners to match. */}
       <div className="relative h-32 bg-gray-100 border-b border-border/20 overflow-hidden">
         <MiniFormPreview
           questions={survey.preview?.questions ?? []}

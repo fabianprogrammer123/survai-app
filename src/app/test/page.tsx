@@ -67,8 +67,11 @@ export default function TestDashboard() {
       />
 
       <main className="max-w-6xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
-        {/* Start-a-new-form band — distinct lighter backdrop, similar to Google Forms */}
-        <div className="rounded-2xl bg-gradient-to-b from-muted/60 to-muted/20 border border-border/30 ring-1 ring-border/30 mb-8 shadow-sm">
+        {/* Start-a-new-form band — elevated panel with a clear, solid
+            lighter background so it separates from the pure-black page
+            bg. Previous gradient (from-muted/60 to-muted/10) read as
+            noise rather than a panel. */}
+        <div className="rounded-2xl bg-muted/40 border border-border/60 mb-8 shadow-sm">
           <TemplateRow
             onTemplateSelect={handleTemplateSelect}
             searchQuery={searchQuery}
