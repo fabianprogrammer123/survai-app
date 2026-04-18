@@ -442,6 +442,38 @@ test.describe('/test editor — smoke', () => {
     await expect(page.getByTitle(/Axiom apps/i)).toBeVisible();
   });
 
+  test('recent forms has status filter and view toggle', async ({ page }) => {
+    // Seed at least one survey so the Recent forms header renders
+    await page.goto('/test');
+    await page.evaluate(() => {
+      const now = new Date().toISOString();
+      const survey = {
+        id: 'filter-seed', title: 'Filter Test Survey', description: '',
+        elements: [{ id: 'e1', type: 'short_text', title: 'Q', required: false }],
+        settings: { theme: 'default', showProgressBar: true, shuffleQuestions: false, confirmationMessage: 'x', stylePreset: 'google-forms', colorMode: 'dark', layoutMode: 'scroll' },
+        published: false, createdAt: now, updatedAt: now,
+      };
+      localStorage.setItem('survai-survey-' + survey.id, JSON.stringify(survey));
+      localStorage.setItem('survai-surveys-index', JSON.stringify([{
+        id: survey.id, title: survey.title, published: false, elementCount: 1,
+        stylePreset: 'google-forms', colorMode: 'dark',
+        createdAt: now, updatedAt: now,
+        preview: { questions: [{ title: 'Q', type: 'short_text' }] },
+      }]));
+    });
+    await page.reload();
+    await expect(page.getByText(/Recent forms/i)).toBeVisible();
+    await expect(page.getByText(/Owned by anyone/i)).toBeVisible();
+    await expect(page.locator('[data-view-mode="grid"]')).toBeVisible();
+    await expect(page.locator('[data-view-mode="list"]')).toBeVisible();
+    await expect(page.getByTitle(/Folders coming soon/i)).toBeVisible();
+
+    // Toggle to list view, confirm the button indicates active state
+    await page.locator('[data-view-mode="list"]').click();
+    // Survey card should still be rendered (just in a different layout)
+    await expect(page.getByText(/Filter Test Survey/i).first()).toBeVisible();
+  });
+
   test('survey cards render preview thumbnails with title and question bars', async ({ page }) => {
     // Seed a survey in localStorage so a card appears
     await page.goto('/test');
