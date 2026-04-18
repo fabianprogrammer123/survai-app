@@ -78,3 +78,14 @@ create policy "Anon insert trace for test flow" on public.ai_traces
   for insert
   to anon
   with check (survey_id is null);
+
+-- Anon can SELECT their own /test traces (survey_id IS NULL). This is
+-- needed for the AI Inspector drawer to fetch what it just wrote. UUIDs
+-- are unguessable so this doesn't enable enumeration of other /test
+-- traces; the table rows contain the user's own prompt and the model
+-- response, which on /test are already public by nature.
+drop policy if exists "Anon read test-flow traces" on public.ai_traces;
+create policy "Anon read test-flow traces" on public.ai_traces
+  for select
+  to anon
+  using (survey_id is null);

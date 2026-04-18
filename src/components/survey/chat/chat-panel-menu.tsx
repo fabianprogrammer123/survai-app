@@ -6,8 +6,6 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { MoreVertical, Info } from 'lucide-react';
 
@@ -30,8 +28,9 @@ export function ChatPanelMenu() {
           <MoreVertical className="h-4 w-4" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" sideOffset={4} className="w-56">
-          <DropdownMenuLabel>Developer</DropdownMenuLabel>
-          <DropdownMenuSeparator />
+          <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Developer
+          </div>
           <DropdownMenuCheckboxItem
             checked={inspectorEnabled}
             onCheckedChange={(v) => setInspectorEnabled(Boolean(v))}
