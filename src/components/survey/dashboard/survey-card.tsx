@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Pencil, BarChart3, Trash2 } from 'lucide-react';
 import type { SurveyMeta } from '@/lib/survey/local-surveys';
 import { formatRelativeDate } from '@/lib/survey/local-surveys';
+import { MiniFormPreview } from './mini-form-preview';
 
 // Accent color based on style preset
 const ACCENT_COLORS: Record<string, string> = {
@@ -29,26 +30,14 @@ export function SurveyCard({ survey, onDuplicate, onDelete }: SurveyCardProps) {
       {/* Accent top strip */}
       <div className="h-2" style={{ background: accent }} />
 
-      {/* Preview area — mini form skeleton */}
-      <div className="relative h-28 bg-muted/10 border-b border-border/20 px-4 py-3 flex flex-col justify-center gap-2">
-        {survey.elementCount > 0 ? (
-          <>
-            <div className="space-y-2.5">
-              <div className="h-1.5 rounded-full w-[70%]" style={{ background: `${accent}30` }} />
-              <div className="h-6 rounded-md bg-muted/40 w-full" />
-            </div>
-            {survey.elementCount > 1 && (
-              <div className="space-y-2">
-                <div className="h-1.5 rounded-full w-[55%]" style={{ background: `${accent}20` }} />
-                <div className="h-6 rounded-md bg-muted/30 w-full" />
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-xs text-muted-foreground/50">Empty survey</p>
-          </div>
-        )}
+      {/* Preview area — actual mini form */}
+      <div className="relative h-32 bg-gray-100 border-b border-border/20 overflow-hidden">
+        <MiniFormPreview
+          title={survey.title}
+          questions={survey.preview?.questions ?? []}
+          accentColor={accent}
+          bgColor="#f6f8fb"
+        />
 
         {/* Hover action overlay */}
         <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-2">

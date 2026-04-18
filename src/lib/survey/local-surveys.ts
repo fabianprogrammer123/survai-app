@@ -16,6 +16,9 @@ export interface SurveyMeta {
   colorMode?: string;
   createdAt: string;
   updatedAt: string;
+  preview?: {
+    questions: { title: string; type: string }[];
+  };
 }
 
 // ── Keys ───────────────────────────────────────────────────
@@ -68,6 +71,12 @@ function surveyToMeta(survey: Survey): SurveyMeta {
     colorMode: survey.settings.colorMode,
     createdAt: survey.createdAt,
     updatedAt: survey.updatedAt,
+    preview: {
+      questions: survey.elements.slice(0, 3).map((el) => ({
+        title: el.title || '',
+        type: el.type || 'short_text',
+      })),
+    },
   };
 }
 
