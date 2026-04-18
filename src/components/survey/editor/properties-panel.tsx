@@ -12,7 +12,14 @@ import { cn } from '@/lib/utils';
 import { CATALOG, getCatalogEntry } from '@/lib/survey/catalog';
 import { STYLE_OPTIONS, type SurveyStyle, type ColorMode } from '@/lib/survey/presets';
 import { X, Trash2, Sun, Moon } from 'lucide-react';
-import type { ElementType, SurveyElement, LinearScaleElement } from '@/types/survey';
+import type {
+  ElementType,
+  SurveyElement,
+  LinearScaleElement,
+  MatrixSingleElement,
+  RankingElement,
+  ImageChoiceElement,
+} from '@/types/survey';
 
 /** Element types that can be converted between (excludes layout types and hidden entries). */
 const QUESTION_TYPES = CATALOG.filter((c) => c.category !== 'layout' && !c.hidden);
@@ -50,11 +57,31 @@ function buildTypeConversion(source: SurveyElement, targetType: ElementType): Pa
     updates.unit = src.unit ?? '%';
     updates.minLabel = src.minLabel;
     updates.maxLabel = src.maxLabel;
+  } else if (targetType === 'matrix_single') {
+    const src = source as unknown as Record<string, unknown>;
+    updates.rows = (src.rows as string[]) ?? ['Statement 1', 'Statement 2', 'Statement 3'];
+    updates.columns = (src.columns as string[]) ?? ['Poor', 'Fair', 'Good', 'Excellent'];
+    updates.options = undefined;
+  } else if (targetType === 'ranking') {
+    const src = source as unknown as Record<string, unknown>;
+    updates.items = (src.items as string[]) ?? (src.options as string[]) ?? ['Option A', 'Option B', 'Option C'];
+    updates.options = undefined;
+    updates.columns = undefined;
+    updates.rows = undefined;
   } else {
     updates.min = undefined;
     updates.max = undefined;
     updates.minLabel = undefined;
     updates.maxLabel = undefined;
+  }
+
+  if (targetType !== 'matrix_single') {
+    updates.rows = undefined;
+    updates.columns = undefined;
+  }
+
+  if (targetType !== 'ranking') {
+    updates.items = undefined;
   }
 
   if (targetType !== 'short_text' && targetType !== 'long_text') {
@@ -461,6 +488,149 @@ export function PropertiesPanel({ className }: Props) {
                   placeholder="Very likely"
                 />
               </div>
+            </div>
+          </>
+        )}
+
+        {/* Matrix (single/multi) config */}
+        {element.type === 'matrix_single' && (
+          <>
+            <Separator />
+            <div className="space-y-4">
+              {/* Rows */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium uppercase text-muted-foreground">Statements (rows)</Label>
+                {(element as MatrixSingleElement).rows.map((row, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Input
+                      value={row}
+                      onChange={(e) => {
+                        const rows = [...(element as MatrixSingleElement).rows];
+                        rows[i] = e.target.value;
+                        updateElement(element.id, { rows } as Partial<SurveyElement>);
+                      }}
+                      className="h-8 text-sm"
+                    />
+                    {(element as MatrixSingleElement).rows.length > 1 && (
+                      <button
+                        type="button"
+                        aria-label={`Remove row ${i + 1}`}
+                        onClick={() => {
+                          const rows = (element as MatrixSingleElement).rows.filter((_, idx) => idx !== i);
+                          updateElement(element.id, { rows } as Partial<SurveyElement>);
+                        }}
+                        className="text-muted-foreground hover:text-destructive text-xs px-1"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const current = (element as MatrixSingleElement).rows;
+                    const rows = [...current, `Statement ${current.length + 1}`];
+                    updateElement(element.id, { rows } as Partial<SurveyElement>);
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  + Add row
+                </button>
+              </div>
+
+              {/* Columns */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium uppercase text-muted-foreground">Scale (columns)</Label>
+                {(element as MatrixSingleElement).columns.map((col, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Input
+                      value={col}
+                      onChange={(e) => {
+                        const columns = [...(element as MatrixSingleElement).columns];
+                        columns[i] = e.target.value;
+                        updateElement(element.id, { columns } as Partial<SurveyElement>);
+                      }}
+                      className="h-8 text-sm"
+                    />
+                    {(element as MatrixSingleElement).columns.length > 2 && (
+                      <button
+                        type="button"
+                        aria-label={`Remove column ${i + 1}`}
+                        onClick={() => {
+                          const columns = (element as MatrixSingleElement).columns.filter((_, idx) => idx !== i);
+                          updateElement(element.id, { columns } as Partial<SurveyElement>);
+                        }}
+                        className="text-muted-foreground hover:text-destructive text-xs px-1"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const current = (element as MatrixSingleElement).columns;
+                    const columns = [...current, `Option ${current.length + 1}`];
+                    updateElement(element.id, { columns } as Partial<SurveyElement>);
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  + Add column
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Ranking items editor */}
+        {element.type === 'ranking' && (
+          <>
+            <Separator />
+            <div className="space-y-2" data-ranking-items-editor="true">
+              <Label className="text-xs font-medium uppercase text-muted-foreground">
+                Items to rank
+              </Label>
+              {(element as RankingElement).items.map((item, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    value={item}
+                    onChange={(e) => {
+                      const items = [...(element as RankingElement).items];
+                      items[i] = e.target.value;
+                      updateElement(element.id, { items } as Partial<SurveyElement>);
+                    }}
+                    className="h-8 text-sm"
+                  />
+                  {(element as RankingElement).items.length > 2 && (
+                    <button
+                      type="button"
+                      aria-label={`Remove item ${i + 1}`}
+                      onClick={() => {
+                        const items = (element as RankingElement).items.filter(
+                          (_, idx) => idx !== i,
+                        );
+                        updateElement(element.id, { items } as Partial<SurveyElement>);
+                      }}
+                      className="text-muted-foreground hover:text-destructive text-xs px-1"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  const current = (element as RankingElement).items;
+                  const items = [...current, `Option ${String.fromCharCode(65 + current.length)}`];
+                  updateElement(element.id, { items } as Partial<SurveyElement>);
+                }}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                + Add item
+              </button>
             </div>
           </>
         )}

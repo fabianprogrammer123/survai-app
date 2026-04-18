@@ -13,6 +13,8 @@ import {
   Minus,
   Heart,
   SlidersHorizontal,
+  Grid3x3,
+  ArrowUpDown,
 } from 'lucide-react';
 import { type LucideIcon } from 'lucide-react';
 
@@ -145,6 +147,37 @@ export const CATALOG: CatalogEntry[] = [
       max: 100,
       step: 1,
       unit: '%',
+    }),
+  },
+  {
+    type: 'matrix_single',
+    label: 'Matrix (single choice)',
+    description: 'Rate multiple statements on one scale',
+    icon: Grid3x3,
+    category: 'choice',
+    defaultElement: () => ({
+      id: `el_${nanoid(8)}`,
+      type: 'matrix_single' as const,
+      title: 'Rate the following',
+      description: '',
+      required: false,
+      rows: ['Statement 1', 'Statement 2', 'Statement 3'],
+      columns: ['Poor', 'Fair', 'Good', 'Excellent'],
+    }),
+  },
+  {
+    type: 'ranking',
+    label: 'Ranking',
+    description: 'Drag items to rank by preference',
+    icon: ArrowUpDown,
+    category: 'choice',
+    defaultElement: () => ({
+      id: `el_${nanoid(8)}`,
+      type: 'ranking' as const,
+      title: 'Rank these by preference',
+      description: '',
+      required: false,
+      items: ['Option A', 'Option B', 'Option C'],
     }),
   },
   {

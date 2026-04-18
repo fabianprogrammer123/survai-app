@@ -159,6 +159,13 @@ function buildElement(
         minLabel: d.minLabel,
         maxLabel: d.maxLabel,
       };
+    case 'matrix_single':
+      return {
+        ...base,
+        type: 'matrix_single',
+        rows: d.rows ?? ['Statement 1', 'Statement 2', 'Statement 3'],
+        columns: d.columns ?? ['Poor', 'Fair', 'Good', 'Excellent'],
+      };
     case 'date':
       return { ...base, type: 'date' };
     case 'file_upload':

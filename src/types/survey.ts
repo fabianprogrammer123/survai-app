@@ -7,6 +7,9 @@ export const ELEMENT_TYPES = [
   'linear_scale',
   'nps',
   'slider',
+  'matrix_single',
+  'ranking',
+  'image_choice',
   'date',
   'file_upload',
   'section_header',
@@ -94,6 +97,28 @@ export interface SliderElement extends BaseElement {
   maxLabel?: string;
 }
 
+export interface MatrixSingleElement extends BaseElement {
+  type: 'matrix_single';
+  /** Statement labels — one per row. */
+  rows: string[];
+  /** Rating scale labels — one per column. */
+  columns: string[];
+}
+
+export interface RankingElement extends BaseElement {
+  type: 'ranking';
+  /** Items the respondent drags into preference order. Must be unique labels. */
+  items: string[];
+}
+
+export interface ImageChoiceElement extends BaseElement {
+  type: 'image_choice';
+  /** Each option carries a label and an optional inline base64 image. */
+  options: Array<{ label: string; imageDataUrl?: string }>;
+  /** When true, respondents can pick multiple options. */
+  multiSelect?: boolean;
+}
+
 export interface DateElement extends BaseElement {
   type: 'date';
 }
@@ -121,6 +146,9 @@ export type SurveyElement =
   | LinearScaleElement
   | NpsElement
   | SliderElement
+  | MatrixSingleElement
+  | RankingElement
+  | ImageChoiceElement
   | DateElement
   | FileUploadElement
   | SectionHeaderElement

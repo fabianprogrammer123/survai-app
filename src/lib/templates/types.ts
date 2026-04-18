@@ -28,6 +28,12 @@ export interface BlockDefaults {
   mode?: 'discrete' | 'continuous';
   accentColor?: string;
   backgroundColor?: string;
+  /** Matrix/Likert rows (statements). */
+  rows?: string[];
+  /** Matrix columns (rating scale). */
+  columns?: string[];
+  /** Likert scale size (3, 5, or 7). */
+  scale?: 3 | 5 | 7;
 }
 
 export interface BlockTemplate {

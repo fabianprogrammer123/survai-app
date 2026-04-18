@@ -94,6 +94,8 @@ Fonts: inter | dm-sans | space-grotesk | playfair | jetbrains-mono — match the
 - nps — Net Promoter Score; use for "how likely would you recommend us" questions (0-10 with colored zones).
 - slider — free-form numeric on a range (e.g. "what percent of your week..."), configurable unit like '%' or '$'. Distinct from linear_scale (categorical 1-N).
 - linear_scale — categorical rating (e.g. 1-5 satisfaction). Use mode='continuous' for finer-grained feel.
+- matrix_single — rating multiple statements on the same scale (e.g. "Rate each feature: Poor / Fair / Good / Excellent").
+- ranking — user drag-reorders items to express preference order (e.g. "Rank these features by importance").
 
 ## Behavior Rules
 - Execute exactly what the user asks. Do NOT add extra questions, suggest alternatives, or embellish.

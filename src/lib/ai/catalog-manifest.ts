@@ -50,6 +50,13 @@ const typeProperties: Record<string, PropertySpec[]> = {
     { name: 'minLabel', type: 'string', required: false },
     { name: 'maxLabel', type: 'string', required: false },
   ],
+  matrix_single: [
+    { name: 'rows', type: 'string[]', required: true, description: 'Statements to evaluate (at least 1)' },
+    { name: 'columns', type: 'string[]', required: true, description: 'Rating scale (at least 2)' },
+  ],
+  ranking: [
+    { name: 'items', type: 'string[]', required: true, description: 'Items to rank (at least 2, unique labels)' },
+  ],
   date: [],
   file_upload: [
     { name: 'maxFiles', type: 'number', required: false },
@@ -64,6 +71,8 @@ const typeConstraints: Record<string, Record<string, unknown>> = {
   checkboxes: { minOptions: 2 },
   dropdown: { minOptions: 2 },
   linear_scale: { minRange: 1, maxRange: 10 },
+  matrix_single: { minRows: 1, minColumns: 2 },
+  ranking: { minItems: 2 },
 };
 
 export function buildCatalogManifest(): CatalogManifestEntry[] {

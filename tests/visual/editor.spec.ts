@@ -714,6 +714,21 @@ test.describe('/test editor — smoke', () => {
     await expect(page.getByText(/Name/i).first()).toBeVisible();
     await expect(page.getByText(/Message/i)).toHaveCount(0);
   });
+
+  test('Matrix Single Choice renders table with rows and columns', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByRole('menuitem', { name: /Matrix \(single choice\)/i }).first().click();
+    const matrix = page.locator('[data-matrix-single]');
+    await expect(matrix).toBeVisible();
+    // Table rendered with at least 3 rows and 4 columns by default
+    const rows = matrix.locator('tbody tr');
+    expect(await rows.count()).toBeGreaterThanOrEqual(3);
+  });
 });
 
 test.describe('/s/preview mobile', () => {

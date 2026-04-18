@@ -7,6 +7,8 @@ import { DropdownRenderer } from './dropdown-element';
 import { LinearScaleRenderer } from './linear-scale';
 import { NpsRenderer } from './nps';
 import { SliderRenderer } from './slider';
+import { MatrixSingleRenderer } from './matrix-single';
+import { RankingRenderer } from './ranking';
 import { DateRenderer } from './date-element';
 import { FileUploadRenderer } from './file-upload';
 import { SectionHeaderRenderer } from './section-header';
@@ -31,6 +33,8 @@ const RENDERERS: Record<string, React.ComponentType<any>> = {
   linear_scale: LinearScaleRenderer,
   nps: NpsRenderer,
   slider: SliderRenderer,
+  matrix_single: MatrixSingleRenderer,
+  ranking: RankingRenderer,
   date: DateRenderer,
   file_upload: FileUploadRenderer,
   section_header: SectionHeaderRenderer,
