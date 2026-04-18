@@ -168,3 +168,17 @@ export const aiResponseSchema = z.object({
 });
 
 export type AiResponse = z.infer<typeof aiResponseSchema>;
+
+// ---------------------------------------------------------------------------
+// Per-element-type schemas (optional — used for validation of concrete
+// SurveyElement objects, not blueprint hydration).
+// ---------------------------------------------------------------------------
+
+export const rankingElementSchema = z.object({
+  id: z.string(),
+  type: z.literal('ranking'),
+  title: z.string(),
+  description: z.string().nullable().optional(),
+  required: z.boolean(),
+  items: z.array(z.string()).min(2),
+});

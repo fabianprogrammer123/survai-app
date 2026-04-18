@@ -34,6 +34,8 @@ export interface BlockDefaults {
   columns?: string[];
   /** Likert scale size (3, 5, or 7). */
   scale?: 3 | 5 | 7;
+  /** Ranking items (ordered list). */
+  items?: string[];
 }
 
 export interface BlockTemplate {
