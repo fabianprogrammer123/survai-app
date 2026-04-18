@@ -3,13 +3,16 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { aiResponseSchema } from '@/lib/ai/schema';
 import { buildSystemPrompt } from '@/lib/ai/prompts';
 import { hydrateBlueprint } from '@/lib/templates/hydrate';
-import { DEFAULT_SETTINGS } from '@/types/survey';
+import { DEFAULT_SETTINGS, type SurveySettings } from '@/types/survey';
 import { getAnthropic, DEFAULT_MODEL } from '@/lib/anthropic';
+import { persistTrace } from '@/lib/ai/trace-server';
 
 /**
  * POST /api/ai/chat/test/stream
- * SSE streaming test endpoint. Emits status events while Claude thinks,
- * then streams the hydrated result element-by-element.
+ * SSE streaming /test entry point. Emits status events while Claude thinks,
+ * streams the hydrated result element-by-element, and closes with a
+ * `trace_id` event carrying the persisted ai_traces row id (or null on
+ * persist failure).
  */
 export async function POST(req: NextRequest) {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -30,8 +33,48 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      const start = Date.now();
+      let traceSystemPrompt = '';
+      let traceIntent: 'generate' | 'propose' | 'command' | 'clarify' | 'error' | null = null;
+      let traceModel: string | null = null;
+      let traceInputTokens: number | null = null;
+      let traceOutputTokens: number | null = null;
+      let traceProposalsCount: number | null = null;
+      let traceCommands: unknown = null;
+      let traceRaw: string | null = null;
+      let traceError: string | null = null;
+
+      async function emitTraceAndClose() {
+        const traceId = await persistTrace({
+          surveyId: null,
+          userMessage: message ?? '',
+          systemPrompt: traceSystemPrompt,
+          durationMs: Date.now() - start,
+          intent: traceIntent,
+          model: traceModel,
+          inputTokens: traceInputTokens,
+          outputTokens: traceOutputTokens,
+          proposalsCount: traceProposalsCount,
+          commands: traceCommands,
+          rawResponse: traceRaw,
+          error: traceError,
+        });
+        send('trace_id', { traceId });
+        controller.close();
+      }
+
       try {
         send('status', { text: 'Understanding your request...' });
+
+        const settings = (currentSurvey?.settings ?? DEFAULT_SETTINGS) as SurveySettings;
+        const aiContext = settings.aiContext ?? {};
+        const model =
+          aiContext.model && typeof aiContext.model === 'string'
+            ? aiContext.model
+            : DEFAULT_MODEL;
+        const temperature =
+          typeof aiContext.temperature === 'number' ? aiContext.temperature : undefined;
+        traceModel = model;
 
         const systemPrompt = buildSystemPrompt(
           currentSurvey || {
@@ -41,6 +84,7 @@ export async function POST(req: NextRequest) {
             settings: DEFAULT_SETTINGS,
           }
         );
+        traceSystemPrompt = systemPrompt;
 
         const messages = [
           ...(history || [])
@@ -56,8 +100,9 @@ export async function POST(req: NextRequest) {
 
         const anthropic = getAnthropic();
         const response = await anthropic.messages.create({
-          model: DEFAULT_MODEL,
+          model,
           max_tokens: 16000,
+          ...(temperature !== undefined ? { temperature } : {}),
           system: systemPrompt + '\n\nReturn ONLY a JSON object matching the survey_response schema. No prose, no markdown fences.',
           messages,
         });
@@ -66,11 +111,18 @@ export async function POST(req: NextRequest) {
           .filter((b): b is Anthropic.TextBlock => b.type === 'text')
           .map((b) => b.text)
           .join('');
+        traceRaw = raw;
+        traceModel = response.model;
+        traceInputTokens = response.usage?.input_tokens ?? null;
+        traceOutputTokens = response.usage?.output_tokens ?? null;
 
-        const usage = response.usage;
         send('trace', {
-          tokenUsage: usage
-            ? { input: usage.input_tokens, output: usage.output_tokens, cacheRead: usage.cache_read_input_tokens }
+          tokenUsage: response.usage
+            ? {
+                input: response.usage.input_tokens,
+                output: response.usage.output_tokens,
+                cacheRead: response.usage.cache_read_input_tokens,
+              }
             : null,
           model: response.model,
           stopReason: response.stop_reason,
@@ -86,18 +138,25 @@ export async function POST(req: NextRequest) {
         try {
           parsedRaw = JSON.parse(cleaned);
         } catch {
+          traceIntent = 'error';
+          traceError = 'JSON parse failed';
           send('error', { error: 'Invalid AI response format' });
-          controller.close();
+          await emitTraceAndClose();
           return;
         }
 
         const zodResult = aiResponseSchema.safeParse(parsedRaw);
         if (!zodResult.success) {
+          traceIntent = 'error';
+          traceError = 'Zod validation failed';
           send('error', { error: 'AI response did not match schema' });
-          controller.close();
+          await emitTraceAndClose();
           return;
         }
         const parsed = zodResult.data;
+        traceIntent = parsed.intent;
+        traceProposalsCount = parsed.proposals?.length ?? null;
+        traceCommands = parsed.commands ?? null;
 
         if (parsed.intent === 'clarify') {
           send('result', {
@@ -105,7 +164,7 @@ export async function POST(req: NextRequest) {
             message: parsed.message,
             clarifyingQuestions: parsed.clarifyingQuestions || [],
           });
-          controller.close();
+          await emitTraceAndClose();
           return;
         }
 
@@ -128,7 +187,7 @@ export async function POST(req: NextRequest) {
             message: parsed.message,
             proposals: hydratedProposals,
           });
-          controller.close();
+          await emitTraceAndClose();
           return;
         }
 
@@ -158,21 +217,22 @@ export async function POST(req: NextRequest) {
           send('generation_complete', {
             errors: result.errors.length > 0 ? result.errors : undefined,
           });
-          controller.close();
+          await emitTraceAndClose();
           return;
         }
 
-        // Command intent
         send('result', {
           intent: 'command',
           message: parsed.message,
           commands: parsed.commands,
         });
-        controller.close();
+        await emitTraceAndClose();
       } catch (error) {
+        traceIntent = 'error';
+        traceError = error instanceof Error ? error.message : 'Internal server error';
         const msg = error instanceof Error ? error.message : 'Internal server error';
         send('error', { error: msg });
-        controller.close();
+        await emitTraceAndClose();
       }
     },
   });

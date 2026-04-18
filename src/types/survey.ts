@@ -195,6 +195,14 @@ export interface SurveySettings {
   aiContext?: {
     goal?: string;
     strictness?: 'strict' | 'balanced' | 'open';
+    /** Override the Claude model for this survey's chat turns. */
+    model?: 'claude-opus-4-7' | 'claude-sonnet-4-6' | 'claude-haiku-4-5';
+    /** Sampling temperature passed to Claude. 0 = deterministic, 1 = creative. */
+    temperature?: number;
+    /** Appended to the base system prompt (non-empty = extra instruction). */
+    systemPromptOverride?: string;
+    /** Free-text style guidance, rendered as a `## Style guidance` section. */
+    styleGuidance?: string;
   };
 }
 
@@ -283,6 +291,8 @@ export interface ChatMessage {
   clarifyingQuestions?: ClarifyingQuestion[];
   proposals?: Proposal[];
   isError?: boolean;
+  /** AI trace row id — opens the AI Inspector drawer when clicked. */
+  traceId?: string;
 }
 
 export interface Proposal {

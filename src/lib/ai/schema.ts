@@ -84,6 +84,10 @@ const nullablePartialSettingsSchema = z.object({
   aiContext: z.object({
     goal: z.string().nullable().optional(),
     strictness: z.enum(['strict', 'balanced', 'open']).nullable().optional(),
+    model: z.enum(['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5']).nullable().optional(),
+    temperature: z.number().nullable().optional(),
+    systemPromptOverride: z.string().nullable().optional(),
+    styleGuidance: z.string().nullable().optional(),
   }).nullable().optional(),
 });
 

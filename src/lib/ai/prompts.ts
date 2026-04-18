@@ -29,6 +29,30 @@ function buildAiContextSection(settings: unknown): string {
   return lines.join('\n');
 }
 
+/**
+ * Optional style-guidance section — creator-provided free-text rules fed
+ * verbatim into the system prompt (e.g. "keep questions under 10 words",
+ * "always include a 'prefer not to answer' option").
+ */
+function buildStyleGuidanceSection(settings: unknown): string {
+  const ctx = (settings as SurveySettings | null | undefined)?.aiContext;
+  const guidance = ctx?.styleGuidance?.trim();
+  if (!guidance) return '';
+  return `\n\n## Style guidance\n${guidance}`;
+}
+
+/**
+ * Optional per-survey system-prompt addendum. Unlike style guidance (which
+ * is structured), this is a raw appended block the creator can use to
+ * issue additional instructions. Non-empty = appended; empty = no-op.
+ */
+function buildSystemPromptOverrideSection(settings: unknown): string {
+  const ctx = (settings as SurveySettings | null | undefined)?.aiContext;
+  const override = ctx?.systemPromptOverride?.trim();
+  if (!override) return '';
+  return `\n\n## Additional instructions\n${override}`;
+}
+
 export function buildSystemPrompt(currentSurvey: CurrentSurveyState): string {
   const blockCatalog = blocksToPromptString();
   const templateCatalog = templatesToPromptString();
@@ -46,6 +70,8 @@ export function buildSystemPrompt(currentSurvey: CurrentSurveyState): string {
           .join('\n');
 
   const aiContextSection = buildAiContextSection(currentSurvey.settings);
+  const styleGuidanceSection = buildStyleGuidanceSection(currentSurvey.settings);
+  const systemPromptOverrideSection = buildSystemPromptOverrideSection(currentSurvey.settings);
 
   return `You are Survai — a sharp, friendly AI survey builder. Keep responses short and punchy. No filler. Get to the point.
 
@@ -109,5 +135,5 @@ Fonts: inter | dm-sans | space-grotesk | playfair | jetbrains-mono — match the
 - Order: intro → demographics → core questions → open feedback
 - 5+ questions → start with section_intro
 - Prefer commands over regeneration for small changes
-- Keep your message to 1-3 sentences. Be warm but efficient.`;
+- Keep your message to 1-3 sentences. Be warm but efficient.${styleGuidanceSection}${systemPromptOverrideSection}`;
 }
