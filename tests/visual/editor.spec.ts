@@ -427,12 +427,14 @@ test.describe('/test editor — smoke', () => {
   test('template cards render mini-form previews', async ({ page }) => {
     await page.goto('/test');
     // At least one non-blank template should render a preview structure
-    // Pick the first template card that is NOT "Blank form"
-    const firstTemplate = page.locator('button[class*="shrink-0 w-[150px]"]').nth(1);
-    await expect(firstTemplate).toBeVisible();
+    // with the silhouette mode preview marker.
+    const silhouettes = page.locator('[data-preview-mode="silhouette"]');
+    await expect(silhouettes.first()).toBeVisible();
+    const count = await silhouettes.count();
+    expect(count).toBeGreaterThan(0);
     // The preview structure uses a colored top band — assert at least one
     // element with inline style background exists within the card
-    const hasColoredBand = await firstTemplate.locator('div[style*="background"]').count();
+    const hasColoredBand = await silhouettes.first().locator('div[style*="background"]').count();
     expect(hasColoredBand).toBeGreaterThan(0);
   });
 
@@ -548,6 +550,59 @@ test.describe('/test editor — smoke', () => {
     await expect(page.getByText(/Customer onboarding interview/i).first()).toBeVisible({ timeout: 5000 });
     // A preview structure with colored bands should be rendered
     // (we assert the card exists; the preview rendering is visual)
+  });
+
+  test('page_break actually paginates the respondent view', async ({ page }) => {
+    const surveyJson = JSON.stringify({
+      id: 'pagebreak-test',
+      title: 'Pagination Test',
+      description: '',
+      elements: [
+        { id: 'e1', type: 'short_text', title: 'Name', required: true },
+        { id: 'e2', type: 'short_text', title: 'Email', required: true },
+        { id: 'e3', type: 'page_break', title: '' },
+        { id: 'e4', type: 'short_text', title: 'Message', required: false },
+      ],
+      settings: { theme: 'default', showProgressBar: true, shuffleQuestions: false, confirmationMessage: 'Thx', stylePreset: 'google-forms', colorMode: 'light', layoutMode: 'scroll' },
+      published: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    const bytes = new TextEncoder().encode(surveyJson);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const b64 = Buffer.from(binary, 'binary').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    await page.goto('/s/preview/' + b64);
+
+    // Page 1: Name and Email visible, Message NOT visible
+    await expect(page.getByText(/Name/i).first()).toBeVisible();
+    await expect(page.getByText(/Email/i).first()).toBeVisible();
+    await expect(page.getByText(/Message/i)).toHaveCount(0);
+
+    // Fill required fields on page 1 so we can advance
+    const nameInput = page.locator('input').nth(0);
+    await nameInput.fill('Alice');
+    const emailInput = page.locator('input').nth(1);
+    await emailInput.fill('alice@example.com');
+
+    // Next button visible, Submit not yet
+    const next = page.locator('[data-page-next="true"]');
+    await expect(next).toBeVisible();
+    await expect(page.locator('[data-page-submit="true"]')).toHaveCount(0);
+
+    // Click Next → page 2
+    await next.click();
+    await expect(page.getByText(/Message/i).first()).toBeVisible();
+
+    // Submit now visible
+    await expect(page.locator('[data-page-submit="true"]')).toBeVisible();
+    // Previous button now visible too
+    await expect(page.locator('[data-page-prev="true"]')).toBeVisible();
+
+    // Go back — Name/Email reappear, Message gone
+    await page.locator('[data-page-prev="true"]').click();
+    await expect(page.getByText(/Name/i).first()).toBeVisible();
+    await expect(page.getByText(/Message/i)).toHaveCount(0);
   });
 });
 
