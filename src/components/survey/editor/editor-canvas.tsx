@@ -127,6 +127,7 @@ export function EditorCanvas({ className }: Props) {
               return (
                 <div
                   key={element.id}
+                  data-element-id={element.id}
                   className="survey-card rounded-xl border border-border/30 bg-card p-5 shadow-sm"
                   style={{
                     ...(element.accentColor ? { borderColor: element.accentColor } : {}),

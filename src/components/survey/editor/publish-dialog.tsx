@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useSurveyStore } from '@/lib/survey/store';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import {
   Globe,
   Loader2,
@@ -34,21 +35,28 @@ import { cn } from '@/lib/utils';
 
 const RESPONDENT_OPTIONS = [10, 25, 50, 100] as const;
 
-type Tab = 'publish' | 'distribute' | 'phone';
+export type PublishTab = 'publish' | 'distribute' | 'phone';
 
 interface PublishDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialTab?: PublishTab;
 }
 
-export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
-  const [tab, setTab] = useState<Tab>('publish');
+export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: PublishDialogProps) {
+  const [tab, setTab] = useState<PublishTab>(initialTab);
   const [count, setCount] = useState<number>(25);
+  const [generateResponses, setGenerateResponses] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [phoneNumbers, setPhoneNumbers] = useState<string[]>(['']);
   const [campaignName, setCampaignName] = useState('');
   const [isCalling, setIsCalling] = useState(false);
+
+  // Sync tab when dialog re-opens with a different initialTab (e.g. Share vs Publish button).
+  useEffect(() => {
+    if (open) setTab(initialTab);
+  }, [open, initialTab]);
 
   const title = useSurveyStore((s) => s.survey.title);
   const survey = useSurveyStore((s) => s.survey);
@@ -125,15 +133,17 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
     }
   }, [survey, publishConfig.agentId, surveyUrl, setCreatingAgent, setPublishConfig]);
 
-  // ── Mock Publish with AI Responses ──
-  async function handleGenerate() {
+  // ── Publish (optionally with AI-generated responses) ──
+  async function handlePublish() {
     setGeneratingResponses(true);
     setError(null);
     try {
-      // Create agent in parallel with response generation
+      // Agent creation runs in parallel; response generation only if opted in.
       const [agentId] = await Promise.all([
         createVoiceAgent(),
         (async () => {
+          if (!generateResponses) return;
+
           const res = await fetch('/api/ai/responses', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -170,16 +180,32 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
       setPublished(true);
       setPublishConfig({ publicUrl: surveyUrl });
       onOpenChange(false);
-      setEditorMode('results');
+
+      // Only jump to Results view when there's data to look at.
+      if (generateResponses) {
+        setEditorMode('results');
+      }
+
+      const parts: string[] = [];
+      parts.push(
+        generateResponses
+          ? `Survey published with ${count} AI-generated responses`
+          : 'Survey published — share the link to start collecting responses'
+      );
+      if (agentId) parts.push('voice agent ready');
+      const summary = parts.join(', ') + '.';
+      const followUp = generateResponses
+        ? ' Switched to Results view — ask me anything about your data.'
+        : '';
 
       useSurveyStore.getState().addChatMessage({
         id: nanoid(),
         role: 'assistant',
-        content: `Survey published with ${count} AI-generated responses${agentId ? ' and voice agent created' : ''}. Switched to Results view — ask me anything about your data.`,
+        content: summary + followUp,
         timestamp: new Date().toISOString(),
       });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Failed to generate responses';
+      const msg = e instanceof Error ? e.message : 'Failed to publish';
       setError(msg);
     } finally {
       setGeneratingResponses(false);
@@ -310,7 +336,7 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
     reader.readAsText(file);
   }
 
-  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  const tabs: { id: PublishTab; label: string; icon: React.ReactNode }[] = [
     { id: 'publish', label: 'Publish', icon: <Globe className="h-3.5 w-3.5" /> },
     { id: 'distribute', label: 'Share', icon: <Link2 className="h-3.5 w-3.5" /> },
     { id: 'phone', label: 'Phone', icon: <Phone className="h-3.5 w-3.5" /> },
@@ -318,8 +344,23 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
+      {/*
+        Hard-override the dialog primitive's grid + default max-width:
+        - `!max-w-lg` forces 32rem at every breakpoint (the primitive's
+          responsive `sm:max-w-sm` and `calc(100%-2rem)` were making the
+          dialog stretch to the viewport on wide screens).
+        - `!grid-cols-1` neutralizes the default grid so our flex-col
+          layout can own vertical distribution.
+        - Outer is overflow-hidden; the tab-content wrapper scrolls
+          internally so dialog height is always capped.
+      */}
+      <DialogContent
+        className={cn(
+          'w-[calc(100%-2rem)] !max-w-lg max-h-[85vh]',
+          'flex flex-col overflow-hidden !grid-cols-1 gap-3'
+        )}
+      >
+        <DialogHeader className="shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Globe className="h-4 w-4 text-primary" />
             Publish & Distribute
@@ -329,8 +370,8 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        {/* Tab bar */}
-        <div className="flex gap-1 bg-muted/40 rounded-lg p-1">
+        {/* Tab bar — fixed at top, never scrolls. */}
+        <div className="flex gap-1 bg-muted/40 rounded-lg p-1 shrink-0">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -348,9 +389,12 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
           ))}
         </div>
 
+        {/* Scrollable body — single flex child that owns vertical overflow. */}
+        <div className="flex-1 min-h-0 overflow-y-auto min-w-0">
+
         {/* ── Publish Tab ── */}
         {tab === 'publish' && (
-          <div className="space-y-4 py-1">
+          <div className="space-y-4 py-1 min-h-[360px]">
             <div className="rounded-lg bg-muted/40 p-3">
               <div className="font-medium text-sm truncate">{title || 'Untitled Survey'}</div>
               <div className="text-xs text-muted-foreground mt-0.5">
@@ -358,28 +402,54 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
               </div>
             </div>
 
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">
-                <Users className="h-3.5 w-3.5 inline mr-1.5 -mt-0.5" />
-                AI-Generated Respondents
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {RESPONDENT_OPTIONS.map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => setCount(n)}
-                    disabled={isGenerating}
-                    className={cn(
-                      'rounded-lg border py-2 text-sm font-medium transition-all',
-                      count === n
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:text-foreground'
-                    )}
+            {/* AI-synthetic responses — opt-in, off by default */}
+            <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <label
+                    htmlFor="generate-ai-responses"
+                    className="text-sm font-medium text-foreground flex items-center gap-1.5 cursor-pointer"
                   >
-                    {n}
-                  </button>
-                ))}
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    Generate AI-synthetic responses
+                  </label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Seed the dashboard with simulated answers so you can preview analytics before real respondents arrive.
+                  </p>
+                </div>
+                <Switch
+                  id="generate-ai-responses"
+                  checked={generateResponses}
+                  onCheckedChange={setGenerateResponses}
+                  disabled={isGenerating}
+                />
               </div>
+
+              {generateResponses && (
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mb-2">
+                    <Users className="h-3 w-3" />
+                    Respondents
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {RESPONDENT_OPTIONS.map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => setCount(n)}
+                        disabled={isGenerating}
+                        className={cn(
+                          'rounded-lg border py-2 text-sm font-medium transition-all',
+                          count === n
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                        )}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Voice agent creation note */}
@@ -389,26 +459,35 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
                 <div>
                   <p className="text-xs font-medium text-foreground">Voice Agent Auto-Created</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    An ElevenLabs AI agent will be created to conduct this survey via voice or phone calls.
+                    An ElevenLabs AI agent will be created so respondents can answer by voice or phone.
                   </p>
                 </div>
               </div>
             </div>
 
             <Button
-              onClick={handleGenerate}
+              onClick={handlePublish}
               disabled={isGenerating || isCreatingAgent || answerableCount === 0}
               className="w-full"
             >
               {isGenerating || isCreatingAgent ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
-                  {isCreatingAgent ? 'Creating voice agent...' : `Generating ${count} responses...`}
+                  {isCreatingAgent
+                    ? 'Creating voice agent...'
+                    : generateResponses
+                      ? `Generating ${count} responses...`
+                      : 'Publishing...'}
                 </>
-              ) : (
+              ) : generateResponses ? (
                 <>
                   <Sparkles className="h-4 w-4 mr-1.5" />
                   Publish & Generate {count} Responses
+                </>
+              ) : (
+                <>
+                  <Globe className="h-4 w-4 mr-1.5" />
+                  Publish Survey
                 </>
               )}
             </Button>
@@ -417,7 +496,7 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
 
         {/* ── Share Tab ── */}
         {tab === 'distribute' && (
-          <div className="space-y-4 py-1">
+          <div className="space-y-4 py-1 min-h-[360px]">
             {/* Survey Link */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
@@ -525,10 +604,12 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
             </div>
 
             {/* Embed code */}
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <label className="text-xs font-medium text-muted-foreground uppercase">Embed Code</label>
-              <div className="relative">
-                <pre className="rounded-lg bg-muted/30 border border-border/40 p-3 text-[10px] font-mono text-muted-foreground overflow-x-auto">
+              <div className="relative min-w-0">
+                <pre
+                  className="rounded-lg bg-muted/30 border border-border/40 p-3 pr-10 text-[10px] font-mono text-muted-foreground max-w-full whitespace-pre-wrap break-all"
+                >
 {`<iframe
   src="${surveyUrl}?embed=true"
   width="100%" height="700"
@@ -555,7 +636,7 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
 
         {/* ── Phone Campaign Tab ── */}
         {tab === 'phone' && (
-          <div className="space-y-4 py-1">
+          <div className="space-y-4 py-1 min-h-[360px]">
             <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
               <div className="flex items-start gap-2">
                 <PhoneCall className="h-4 w-4 text-primary mt-0.5 shrink-0" />
@@ -689,6 +770,8 @@ export function PublishDialog({ open, onOpenChange }: PublishDialogProps) {
             {error}
           </div>
         )}
+
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -8,7 +8,7 @@ import { useVoiceOutput } from '@/hooks/use-voice-output';
 import { ChatHeader } from './chat-header';
 import { ChatEmptyState } from './chat-empty-state';
 import { ChatMessage } from './chat-message';
-import { ChatInputArea } from './chat-input-area';
+import { ChatInputArea, type ChatInputAreaHandle } from './chat-input-area';
 import { VoiceInputButton } from './voice-input-button';
 import { VoiceModeOverlay } from './voice-mode-overlay';
 import { buildProactiveGreeting } from '@/lib/survey/proactive-greeting';
@@ -36,6 +36,7 @@ export function ChatPanel({ className, aiEndpoint, aiStreamEndpoint }: Props) {
   const voice = useVoiceInput();
   const tts = useVoiceOutput();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<ChatInputAreaHandle>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -81,13 +82,16 @@ export function ChatPanel({ className, aiEndpoint, aiStreamEndpoint }: Props) {
     [sendMessage, isChatLoading, tts]
   );
 
-  // Dictation: stop recording → transcribe → send
+  // Dictation: stop recording → transcribe → drop the text into the chat
+  // input for the user to review/edit. Previously this auto-sent the
+  // transcription as a message, which made mistakes impossible to fix.
   const handleVoiceStop = useCallback(async () => {
     const transcription = await voice.stopRecording();
     if (transcription.trim()) {
-      handleSend(transcription, 'voice');
+      inputRef.current?.insertText(transcription);
+      inputRef.current?.focus();
     }
-  }, [voice, handleSend]);
+  }, [voice]);
 
   // Apply a selected proposal with streaming animation
   const handleProposalSelect = useCallback(async (proposal: Proposal) => {
@@ -171,8 +175,10 @@ export function ChatPanel({ className, aiEndpoint, aiStreamEndpoint }: Props) {
 
       {/* Input area — always text mode with mic button */}
       <ChatInputArea
+        ref={inputRef}
         onSend={handleSend}
         isLoading={isChatLoading}
+        transcribing={voice.state === 'transcribing'}
         voiceButton={
           <VoiceInputButton
             state={voice.state}

@@ -89,6 +89,7 @@ export function SortableElement({ element, index = 0, isDragOverlay }: Props) {
   return (
     <div
       ref={isDragOverlay ? undefined : setNodeRef}
+      data-element-id={element.id}
       style={style}
       className={cn(
         'survey-card group relative rounded-xl border border-border/30 border-l-[3px] bg-card p-5 transition-all duration-200 cursor-pointer',

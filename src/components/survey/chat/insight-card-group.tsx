@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { useSurveyStore } from '@/lib/survey/store';
 import { getCatalogEntry } from '@/lib/survey/catalog';
 import { getBlockTemplate } from '@/lib/templates/blocks';
+import { buildTypeConversion } from '@/lib/survey/type-conversion';
+import { scrollToEditorElement } from '@/lib/survey/scroll';
+import { TypePickerPopover } from './type-picker-popover';
 import { ChevronDown, ChevronRight, Info, Layers } from 'lucide-react';
 import {
   Tooltip,
@@ -11,8 +14,7 @@ import {
   TooltipContent,
   TooltipProvider,
 } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
-import type { GenerationBatch } from '@/types/survey';
+import type { GenerationBatch, ElementType } from '@/types/survey';
 
 interface InsightCardGroupProps {
   batch: GenerationBatch;
@@ -22,6 +24,19 @@ export function InsightCardGroup({ batch }: InsightCardGroupProps) {
   const [expanded, setExpanded] = useState(true);
   const setHighlightedElements = useSurveyStore((s) => s.setHighlightedElements);
   const selectElement = useSurveyStore((s) => s.selectElement);
+  const updateElement = useSurveyStore((s) => s.updateElement);
+  const elements = useSurveyStore((s) => s.survey.elements);
+
+  function handleJumpTo(elementId: string) {
+    selectElement(elementId, 'ai');
+    scrollToEditorElement(elementId);
+  }
+
+  function handleTypeChange(elementId: string, newType: ElementType) {
+    const source = elements.find((el) => el && el.id === elementId);
+    if (!source || source.type === newType) return;
+    updateElement(elementId, buildTypeConversion(source, newType));
+  }
 
   return (
     <div className="mt-1.5 rounded-lg border bg-background/80 overflow-hidden">
@@ -43,25 +58,41 @@ export function InsightCardGroup({ batch }: InsightCardGroupProps) {
           <TooltipProvider>
             {batch.insightCards.map((card) => {
               const block = getBlockTemplate(card.blockId);
-              const catalogEntry = block ? getCatalogEntry(block.elementType) : null;
+              const liveElement = elements.find((el) => el && el.id === card.elementId);
+              // Prefer the live (current) type so switching via the picker
+              // updates the icon without waiting for a new generation batch.
+              const currentType = liveElement?.type ?? block?.elementType;
+              const catalogEntry = currentType ? getCatalogEntry(currentType) : null;
               const Icon = catalogEntry?.icon;
 
               return (
                 <div
                   key={card.elementId}
-                  className="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-accent/50 transition-colors cursor-pointer"
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-accent/50 transition-colors"
                   onMouseEnter={() => setHighlightedElements([card.elementId])}
                   onMouseLeave={() => setHighlightedElements([])}
-                  onClick={() => selectElement(card.elementId)}
                 >
-                  {Icon && (
-                    <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  {Icon && liveElement ? (
+                    <TypePickerPopover
+                      currentType={liveElement.type}
+                      onSelect={(t) => handleTypeChange(card.elementId, t)}
+                      className="h-5 w-5 shrink-0"
+                    >
+                      <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                    </TypePickerPopover>
+                  ) : (
+                    Icon && <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                   )}
-                  <div className="flex-1 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => handleJumpTo(card.elementId)}
+                    className="flex-1 min-w-0 text-left cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm"
+                    title="Jump to this question in the editor"
+                  >
                     <span className="font-medium text-foreground/80 truncate block">
                       {card.elementTitle || card.blockLabel}
                     </span>
-                  </div>
+                  </button>
                   {card.rationale && (
                     <Tooltip>
                       <TooltipTrigger className="shrink-0">

@@ -5,7 +5,7 @@ import { useSurveyStore } from '@/lib/survey/store';
 import { Button } from '@/components/ui/button';
 import { Share2, Globe, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PublishDialog } from './publish-dialog';
+import { PublishDialog, type PublishTab } from './publish-dialog';
 
 interface EditorHeaderProps {
   /** Extra content to render on the left (e.g. title, element count). */
@@ -20,6 +20,7 @@ export function EditorHeader({ leftContent, rightContent, className }: EditorHea
   const setEditorMode = useSurveyStore((s) => s.setEditorMode);
   const isPublished = useSurveyStore((s) => s.isPublished);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [publishTab, setPublishTab] = useState<PublishTab>('publish');
 
   return (
     <>
@@ -87,6 +88,10 @@ export function EditorHeader({ leftContent, rightContent, className }: EditorHea
             variant="outline"
             size="sm"
             className="hidden sm:inline-flex h-9 px-4 rounded-lg border-border/60"
+            onClick={() => {
+              setPublishTab('distribute');
+              setPublishOpen(true);
+            }}
           >
             <Share2 className="h-3.5 w-3.5 mr-2" />
             Share
@@ -94,7 +99,10 @@ export function EditorHeader({ leftContent, rightContent, className }: EditorHea
           <Button
             size="sm"
             className="h-9 px-3 sm:px-4 rounded-lg shadow-sm"
-            onClick={() => setPublishOpen(true)}
+            onClick={() => {
+              setPublishTab('publish');
+              setPublishOpen(true);
+            }}
           >
             <Globe className="h-3.5 w-3.5 sm:mr-2" />
             <span className="hidden sm:inline">{isPublished ? 'Re-publish' : 'Publish'}</span>
@@ -102,7 +110,7 @@ export function EditorHeader({ leftContent, rightContent, className }: EditorHea
         </div>
       </div>
 
-      <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} />
+      <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} initialTab={publishTab} />
     </>
   );
 }
