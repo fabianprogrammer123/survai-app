@@ -6,6 +6,7 @@ export const ELEMENT_TYPES = [
   'dropdown',
   'linear_scale',
   'nps',
+  'slider',
   'date',
   'file_upload',
   'section_header',
@@ -81,6 +82,18 @@ export interface NpsElement extends BaseElement {
   maxLabel?: string;
 }
 
+export interface SliderElement extends BaseElement {
+  type: 'slider';
+  min: number;
+  max: number;
+  /** Step increment (default 1). */
+  step?: number;
+  /** Unit suffix shown next to the value (e.g. '%', '$', 'h'). */
+  unit?: string;
+  minLabel?: string;
+  maxLabel?: string;
+}
+
 export interface DateElement extends BaseElement {
   type: 'date';
 }
@@ -107,6 +120,7 @@ export type SurveyElement =
   | DropdownElement
   | LinearScaleElement
   | NpsElement
+  | SliderElement
   | DateElement
   | FileUploadElement
   | SectionHeaderElement

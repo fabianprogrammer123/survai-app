@@ -308,6 +308,33 @@ test.describe('/test editor — smoke', () => {
     }
   });
 
+  test('NPS element renders 11 buttons with zones', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByRole('menuitem', { name: /^NPS$/i }).first().click();
+    // 11 buttons (0 through 10)
+    const buttons = page.locator('[data-nps-value]');
+    await expect(buttons).toHaveCount(11);
+  });
+
+  test('Slider element renders range input with readout', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByRole('menuitem', { name: /^Slider$/i }).first().click();
+
+    // range input + readout present
+    await expect(page.locator('[data-slider-input="true"]').first()).toBeVisible();
+    await expect(page.locator('[data-slider-readout="true"]').first()).toBeVisible();
+  });
+
   test('linear scale distributes numbers evenly between labels', async ({ page }) => {
     await page.goto('/test');
     await page.getByText(/Blank form/i).first().click();

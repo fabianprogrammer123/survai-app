@@ -148,6 +148,17 @@ function buildElement(
         minLabel: d.minLabel ?? 'Not likely',
         maxLabel: d.maxLabel ?? 'Very likely',
       };
+    case 'slider':
+      return {
+        ...base,
+        type: 'slider',
+        min: d.min ?? 0,
+        max: d.max ?? 100,
+        step: d.step ?? 1,
+        unit: d.unit,
+        minLabel: d.minLabel,
+        maxLabel: d.maxLabel,
+      };
     case 'date':
       return { ...base, type: 'date' };
     case 'file_upload':

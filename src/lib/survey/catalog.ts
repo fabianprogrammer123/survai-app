@@ -12,6 +12,7 @@ import {
   Heading,
   Minus,
   Heart,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { type LucideIcon } from 'lucide-react';
 
@@ -126,6 +127,24 @@ export const CATALOG: CatalogEntry[] = [
       required: false,
       minLabel: 'Not likely',
       maxLabel: 'Very likely',
+    }),
+  },
+  {
+    type: 'slider',
+    label: 'Slider',
+    description: 'Numeric slider (e.g. percentage)',
+    icon: SlidersHorizontal,
+    category: 'other',
+    defaultElement: () => ({
+      id: `el_${nanoid(8)}`,
+      type: 'slider' as const,
+      title: 'What percentage of your week is spent in meetings?',
+      description: '',
+      required: false,
+      min: 0,
+      max: 100,
+      step: 1,
+      unit: '%',
     }),
   },
   {

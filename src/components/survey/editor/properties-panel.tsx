@@ -42,6 +42,14 @@ function buildTypeConversion(source: SurveyElement, targetType: ElementType): Pa
     updates.maxLabel = src.maxLabel ?? 'Very likely';
     updates.min = undefined;
     updates.max = undefined;
+  } else if (targetType === 'slider') {
+    const src = source as unknown as Record<string, unknown>;
+    updates.min = src.min ?? 0;
+    updates.max = src.max ?? 100;
+    updates.step = src.step ?? 1;
+    updates.unit = src.unit ?? '%';
+    updates.minLabel = src.minLabel;
+    updates.maxLabel = src.maxLabel;
   } else {
     updates.min = undefined;
     updates.max = undefined;
@@ -451,6 +459,66 @@ export function PropertiesPanel({ className }: Props) {
                   value={element.maxLabel || ''}
                   onChange={(e) => updateElement(element.id, { maxLabel: e.target.value } as Partial<SurveyElement>)}
                   placeholder="Very likely"
+                />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Slider config */}
+        {element.type === 'slider' && (
+          <>
+            <Separator />
+            <div className="space-y-4">
+              <Label className="text-xs font-medium uppercase text-muted-foreground">Slider Range</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Min</Label>
+                  <Input
+                    type="number"
+                    value={element.min}
+                    onChange={(e) => updateElement(element.id, { min: parseFloat(e.target.value) || 0 } as Partial<SurveyElement>)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Max</Label>
+                  <Input
+                    type="number"
+                    value={element.max}
+                    onChange={(e) => updateElement(element.id, { max: parseFloat(e.target.value) || 100 } as Partial<SurveyElement>)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Step</Label>
+                  <Input
+                    type="number"
+                    value={element.step ?? 1}
+                    onChange={(e) => updateElement(element.id, { step: parseFloat(e.target.value) || 1 } as Partial<SurveyElement>)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Unit suffix</Label>
+                <Input
+                  value={element.unit ?? ''}
+                  onChange={(e) => updateElement(element.id, { unit: e.target.value } as Partial<SurveyElement>)}
+                  placeholder="e.g. %, $, h"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Min Label</Label>
+                <Input
+                  value={element.minLabel || ''}
+                  onChange={(e) => updateElement(element.id, { minLabel: e.target.value } as Partial<SurveyElement>)}
+                  placeholder="Optional"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Max Label</Label>
+                <Input
+                  value={element.maxLabel || ''}
+                  onChange={(e) => updateElement(element.id, { maxLabel: e.target.value } as Partial<SurveyElement>)}
+                  placeholder="Optional"
                 />
               </div>
             </div>

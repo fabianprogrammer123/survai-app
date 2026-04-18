@@ -23,6 +23,9 @@ export interface BlockDefaults {
   max?: number;
   minLabel?: string;
   maxLabel?: string;
+  step?: number;
+  unit?: string;
+  mode?: 'discrete' | 'continuous';
   accentColor?: string;
   backgroundColor?: string;
 }

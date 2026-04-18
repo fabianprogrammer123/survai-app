@@ -42,6 +42,14 @@ const typeProperties: Record<string, PropertySpec[]> = {
     { name: 'minLabel', type: 'string', required: false, description: "Label under 0 (default 'Not likely')" },
     { name: 'maxLabel', type: 'string', required: false, description: "Label under 10 (default 'Very likely')" },
   ],
+  slider: [
+    { name: 'min', type: 'number', required: true, description: 'Minimum value' },
+    { name: 'max', type: 'number', required: true, description: 'Maximum value' },
+    { name: 'step', type: 'number', required: false, description: 'Step increment (default 1)' },
+    { name: 'unit', type: 'string', required: false, description: "Unit suffix shown next to the value (e.g. '%', '$')" },
+    { name: 'minLabel', type: 'string', required: false },
+    { name: 'maxLabel', type: 'string', required: false },
+  ],
   date: [],
   file_upload: [
     { name: 'maxFiles', type: 'number', required: false },
