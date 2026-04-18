@@ -183,14 +183,45 @@ function EditorContent() {
       />
 
       {/* 2-panel layout */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative flex flex-1 overflow-hidden">
         <EditorCanvas className="flex-1 min-w-0" />
+
+        {/* Desktop (md+): side panel */}
         {panelOpen && (
           <RightPanel
-            className="w-[440px] border-l shrink-0 bg-background"
+            className="hidden md:flex md:w-[440px] md:border-l md:shrink-0 md:bg-background"
             aiEndpoint="/api/ai/chat/test"
             aiStreamEndpoint="/api/ai/chat/test/stream"
           />
+        )}
+
+        {/* Mobile (<md): bottom-drawer panel when toggled */}
+        {panelOpen && (
+          <>
+            <button
+              type="button"
+              aria-label="Close AI panel"
+              onClick={togglePanel}
+              className="md:hidden fixed inset-0 z-40 bg-black/40"
+            />
+            <RightPanel
+              className="md:hidden fixed inset-x-0 bottom-0 z-50 h-[70vh] w-full border-t border-border rounded-t-2xl bg-background shadow-2xl"
+              aiEndpoint="/api/ai/chat/test"
+              aiStreamEndpoint="/api/ai/chat/test/stream"
+            />
+          </>
+        )}
+
+        {/* Mobile (<md): floating toggle button when panel is closed */}
+        {!panelOpen && (
+          <button
+            type="button"
+            onClick={togglePanel}
+            aria-label="Open AI chat and properties"
+            className="md:hidden fixed bottom-4 right-4 z-30 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+          >
+            <PanelRightOpen className="h-5 w-5" />
+          </button>
         )}
       </div>
     </div>

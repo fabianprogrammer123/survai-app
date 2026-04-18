@@ -25,15 +25,15 @@ export function EditorHeader({ leftContent, rightContent, className }: EditorHea
     <>
       <div
         className={cn(
-          'flex items-center border-b border-border/60 px-5 py-2.5 bg-background shrink-0',
+          'flex items-center border-b border-border/60 px-2 sm:px-5 py-2.5 bg-background shrink-0 gap-2',
           className
         )}
       >
         {/* Left section */}
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           {leftContent}
           {isPublished && (
-            <span className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-3 py-1 text-xs font-medium text-green-400 border border-green-500/15">
+            <span className="shrink-0 hidden sm:inline-flex items-center gap-1.5 rounded-full bg-green-500/10 px-3 py-1 text-xs font-medium text-green-400 border border-green-500/15">
               <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
               Live
             </span>
@@ -41,7 +41,7 @@ export function EditorHeader({ leftContent, rightContent, className }: EditorHea
         </div>
 
         {/* Center: Edit / Preview / Results toggle */}
-        <div className="flex items-center bg-muted/80 rounded-xl p-1 gap-0.5">
+        <div className="hidden md:flex items-center bg-muted/80 rounded-xl p-1 gap-0.5">
           <button
             onClick={() => setEditorMode('editor')}
             className={cn(
@@ -81,19 +81,23 @@ export function EditorHeader({ leftContent, rightContent, className }: EditorHea
         </div>
 
         {/* Right: Publish / Share buttons */}
-        <div className="flex items-center gap-2.5 flex-1 justify-end">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 md:flex-1 justify-end shrink-0">
           {rightContent}
-          <Button variant="outline" size="sm" className="h-9 px-4 rounded-lg border-border/60">
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden sm:inline-flex h-9 px-4 rounded-lg border-border/60"
+          >
             <Share2 className="h-3.5 w-3.5 mr-2" />
             Share
           </Button>
           <Button
             size="sm"
-            className="h-9 px-4 rounded-lg shadow-sm"
+            className="h-9 px-3 sm:px-4 rounded-lg shadow-sm"
             onClick={() => setPublishOpen(true)}
           >
-            <Globe className="h-3.5 w-3.5 mr-2" />
-            {isPublished ? 'Re-publish' : 'Publish'}
+            <Globe className="h-3.5 w-3.5 sm:mr-2" />
+            <span className="hidden sm:inline">{isPublished ? 'Re-publish' : 'Publish'}</span>
           </Button>
         </div>
       </div>

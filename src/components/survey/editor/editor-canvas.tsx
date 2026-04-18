@@ -97,7 +97,7 @@ export function EditorCanvas({ className }: Props) {
 
   return (
     <div
-      className={cn('relative overflow-hidden overflow-y-auto p-8 bg-muted/30', className)}
+      className={cn('relative overflow-hidden overflow-y-auto p-3 sm:p-8 bg-muted/30', className)}
       onClick={(e) => {
         if (e.target === e.currentTarget) selectElement(null);
       }}
