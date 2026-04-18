@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { CATALOG, getCatalogEntry } from '@/lib/survey/catalog';
 import { STYLE_OPTIONS, type SurveyStyle, type ColorMode } from '@/lib/survey/presets';
 import { X, Trash2, Sun, Moon } from 'lucide-react';
-import type { ElementType, SurveyElement } from '@/types/survey';
+import type { ElementType, SurveyElement, LinearScaleElement } from '@/types/survey';
 
 /** Element types that can be converted between (excludes layout types and hidden entries). */
 const QUESTION_TYPES = CATALOG.filter((c) => c.category !== 'layout' && !c.hidden);
@@ -401,6 +401,25 @@ export function PropertiesPanel({ className }: Props) {
                   onChange={(e) => updateElement(element.id, { maxLabel: e.target.value } as any)}
                   placeholder="e.g. Strongly Agree"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-medium uppercase text-muted-foreground">Display</Label>
+                <div className="flex gap-1 rounded-lg bg-muted/40 p-0.5" data-linear-scale-mode-picker="true">
+                  {(['discrete', 'continuous'] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => updateElement(element.id, { mode: m } as Partial<SurveyElement>)}
+                      className={cn(
+                        'flex-1 text-xs py-1.5 rounded capitalize transition-colors',
+                        ((element as LinearScaleElement).mode ?? 'discrete') === m
+                          ? 'bg-background shadow-sm'
+                          : 'hover:bg-background/50'
+                      )}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </>

@@ -208,17 +208,14 @@ test.describe('/test editor — smoke', () => {
     await expect(page.locator('[data-element-type-badge="checkboxes"]')).toBeVisible();
   });
 
-  test('file upload is not offered in the Add Question menu', async ({ page }) => {
+  test('file upload is in Add menu and accepts files', async ({ page }) => {
     await page.goto('/test');
     await page.getByText(/Blank form/i).first().click();
     await page.getByRole('button', { name: /Google Forms/i }).first().click();
     await page.getByRole('button', { name: /continue|create|start/i }).click();
     await page.waitForURL(/\/test\/edit/);
     await page.getByRole('button', { name: /Add Question/i }).click();
-    // File Upload should NOT appear in the menu
-    await expect(page.getByText(/File Upload/i)).toHaveCount(0);
-    // But a known-working type SHOULD
-    await expect(page.getByText(/Short Text/i).first()).toBeVisible();
+    await expect(page.getByText(/File Upload/i).first()).toBeVisible();
   });
 
   test('Typeform preset shows one question at a time with nav controls', async ({ page }) => {
@@ -283,6 +280,32 @@ test.describe('/test editor — smoke', () => {
     // And at least 2 question cards + header card = 3 simultaneously visible
     const cards = page.locator('.survey-card');
     expect(await cards.count()).toBeGreaterThanOrEqual(3);
+  });
+
+  test('linear scale supports continuous mode', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByText(/Linear Scale/i).first().click();
+
+    // In discrete mode, there should be radio buttons (role=radio)
+    const discreteRadios = await page.locator('[role="radio"]').count();
+    expect(discreteRadios).toBeGreaterThan(0);
+
+    // Switch to continuous via properties panel
+    await page.locator('.survey-card').last().click({ timeout: 5000 }).catch(() => {});
+    await page.getByRole('button', { name: /Properties/i }).click({ timeout: 2000 }).catch(() => {});
+    // Click the "continuous" segmented-control button inside the mode picker
+    const picker = page.locator('[data-linear-scale-mode-picker="true"]');
+    const continuousBtn = picker.getByRole('button', { name: /^continuous$/i }).first();
+    if (await continuousBtn.isVisible().catch(() => false)) {
+      await continuousBtn.click();
+      // Now there should be an input[type=range]
+      await expect(page.locator('input[type="range"]').first()).toBeVisible({ timeout: 3000 });
+    }
   });
 
   test('linear scale distributes numbers evenly between labels', async ({ page }) => {

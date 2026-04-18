@@ -107,6 +107,7 @@ export const CATALOG: CatalogEntry[] = [
       max: 5,
       minLabel: 'Low',
       maxLabel: 'High',
+      mode: 'discrete' as const,
       required: false,
     }),
   },
@@ -127,7 +128,7 @@ export const CATALOG: CatalogEntry[] = [
     type: 'file_upload',
     label: 'File Upload',
     description: 'Upload files',
-    hidden: true,
+    hidden: false,
     icon: Upload,
     category: 'other',
     defaultElement: () => ({
