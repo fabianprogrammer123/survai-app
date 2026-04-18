@@ -37,13 +37,18 @@ export function SurveyCard({ survey, onDuplicate, onDelete }: SurveyCardProps) {
       {/* Accent top strip */}
       <div className="h-2" style={{ background: accent }} />
 
-      {/* Preview area — actual mini form */}
+      {/* Preview area — actual mini form. No title is passed to the preview
+          because the card footer already renders the survey title; showing
+          it inside the preview too created a "double title" visual
+          illusion. The preview uses 'real' mode so the user sees each
+          question's actual text and type-shaped input stub instead of
+          abstract silhouette bars. */}
       <div className="relative h-32 bg-gray-100 border-b border-border/20 overflow-hidden">
         <MiniFormPreview
-          title={survey.title}
           questions={survey.preview?.questions ?? []}
           accentColor={accent}
           bgColor="#f6f8fb"
+          mode="real"
         />
       </div>
 

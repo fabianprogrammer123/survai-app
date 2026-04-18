@@ -23,13 +23,13 @@ export function SurveyHeaderCard() {
       <Input
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="font-sans border-none text-2xl font-bold p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-muted/30 rounded-lg px-3 -mx-3 py-1 transition-colors"
+        className="font-sans border-none bg-transparent hover:bg-transparent focus:bg-transparent dark:bg-transparent text-2xl font-bold p-0 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 rounded-lg px-3 -mx-3 py-1"
         placeholder="Untitled Survey"
       />
       <Textarea
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        className="font-sans border-none text-muted-foreground p-0 mt-1 resize-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[36px] hover:bg-muted/30 rounded-lg px-3 -mx-3 py-1 transition-colors"
+        className="font-sans border-none bg-transparent hover:bg-transparent focus:bg-transparent dark:bg-transparent text-muted-foreground p-0 mt-1 resize-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[36px] rounded-lg px-3 -mx-3 py-1"
         placeholder="Add a description..."
         rows={2}
       />
