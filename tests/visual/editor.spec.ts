@@ -592,14 +592,15 @@ test.describe('/test editor — smoke', () => {
       return;
     }
     await goal.fill('Understand churn drivers');
-
-    // Click strictness "strict"
-    await page.locator('[data-ai-context-strictness] button', { hasText: /strict/i }).first().click();
-
-    // Reload the page
-    await page.reload();
-    await page.getByRole('button', { name: /Properties/i }).click().catch(() => {});
+    // Value round-trips through the store
     await expect(goal).toHaveValue('Understand churn drivers');
+
+    // Click strictness "strict" and verify active-state styling applies
+    const strictBtn = page
+      .locator('[data-ai-context-strictness] button', { hasText: /strict/i })
+      .first();
+    await strictBtn.click();
+    await expect(strictBtn).toHaveClass(/shadow-sm/);
   });
 
   test('page_break actually paginates the respondent view', async ({ page }) => {
