@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useConversation } from '@elevenlabs/react';
+import { useState, useEffect } from 'react';
 import { SurveyForm } from './survey-form';
-import { Mic, MessageSquare, Loader2, CheckCircle, Volume2 } from 'lucide-react';
+import { VoiceSession, type VoiceEndResult } from './voice-session';
+import { Mic, MessageSquare, Loader2, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SurveyElement } from '@/types/survey';
 
@@ -36,11 +36,7 @@ export function GuestSurvey({ surveyId, token, survey: serverSurvey }: GuestSurv
   const [pageState, setPageState] = useState<PageState>('loading');
   const [guest, setGuest] = useState<GuestData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [transcript, setTranscript] = useState<{ role: 'agent' | 'user'; text: string }[]>([]);
-  const [agentSpeaking, setAgentSpeaking] = useState(false);
-  const transcriptEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch guest data on mount
   useEffect(() => {
     fetch(`/api/surveys/${surveyId}/guests/${token}`)
       .then((res) => {
@@ -61,70 +57,36 @@ export function GuestSurvey({ surveyId, token, survey: serverSurvey }: GuestSurv
       });
   }, [surveyId, token]);
 
-  // ElevenLabs conversation
-  const conversation = useConversation({
-    onConnect: () => {
-      setPageState('voice');
-    },
-    onDisconnect: () => {
-      if (pageState === 'voice') {
-        setPageState('done');
-      }
-    },
-    onMessage: ({ message, source }: { message: string; source: string }) => {
-      setTranscript((prev) => [
-        ...prev,
-        { role: source === 'ai' ? 'agent' : 'user', text: message },
-      ]);
-    },
-    onModeChange: ({ mode }: { mode: string }) => {
-      setAgentSpeaking(mode === 'speaking');
-    },
-    onError: (err: unknown) => {
-      console.error('Voice error:', err);
-      setError('Voice connection failed. Try the chat option instead.');
-    },
-  });
-
-  // Auto-scroll transcript
-  useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [transcript]);
-
-  const startVoice = useCallback(async () => {
-    if (!serverSurvey.agent_id || !guest) return;
-
-    setError(null);
-    setTranscript([]);
-
-    try {
-      const res = await fetch(`/api/elevenlabs/signed-url?agentId=${serverSurvey.agent_id}`);
-      if (!res.ok) throw new Error('Failed to connect');
-      const { signedUrl } = await res.json();
-
-      await conversation.startSession({
-        signedUrl,
-        dynamicVariables: {
-          guest_name: guest.name,
-        },
-      });
-    } catch (err) {
-      console.error('Start voice error:', err);
-      setError('Could not start voice. Try the chat option.');
-    }
-  }, [serverSurvey.agent_id, guest, conversation]);
-
-  const endVoice = useCallback(async () => {
-    try {
-      await conversation.endSession();
-    } catch {
-      // ignore
-    }
-    setPageState('done');
-  }, [conversation]);
-
   const firstName = guest?.name?.split(' ')[0] || 'there';
   const hasVoiceAgent = !!serverSurvey.agent_id;
+
+  const questionCount = serverSurvey.schema.filter(
+    (el) => !['section_header', 'page_break'].includes(el.type)
+  ).length;
+
+  const handleVoiceEnded = (result: VoiceEndResult) => {
+    // Guest flow: the ElevenLabs post-call webhook handles persistence +
+    // guest linking end-to-end, so reaching the end screen is sufficient
+    // for this variant. The anonymous /s/:id flow — which doesn't rely on
+    // pre-invited guests — adds a read-back/verify step on top (added in
+    // a follow-up commit).
+    if (result.reason === 'mic_denied') {
+      setError('We need mic access to run the voice call. Switch to typing?');
+      setPageState('welcome');
+      return;
+    }
+    if (result.reason === 'connect_failed' || result.reason === 'runtime_error') {
+      setError('Voice connection failed. You can try again or switch to typing.');
+      setPageState('welcome');
+      return;
+    }
+    if (result.reason === 'agent_disconnected') {
+      setError('The call dropped. Your answers so far are saved — try again or switch to typing.');
+      setPageState('welcome');
+      return;
+    }
+    setPageState('done');
+  };
 
   // ── Loading ──
   if (pageState === 'loading') {
@@ -135,12 +97,12 @@ export function GuestSurvey({ surveyId, token, survey: serverSurvey }: GuestSurv
     );
   }
 
-  // ── Error ──
+  // ── Error (hard) ──
   if (pageState === 'error') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="text-center max-w-sm">
-          <p className="text-lg font-medium text-foreground mb-2">Hmm, that didn't work</p>
+          <p className="text-lg font-medium text-foreground mb-2">Hmm, that didn&apos;t work</p>
           <p className="text-sm text-muted-foreground">{error || 'This link may be invalid or expired.'}</p>
         </div>
       </div>
@@ -191,133 +153,69 @@ export function GuestSurvey({ surveyId, token, survey: serverSurvey }: GuestSurv
     );
   }
 
-  // ── Welcome screen ──
-  if (pageState === 'welcome') {
-    const questionCount = serverSurvey.schema.filter(
-      (el) => !['section_header', 'page_break'].includes(el.type)
-    ).length;
-
+  // ── Voice mode ──
+  if (pageState === 'voice') {
+    if (!serverSurvey.agent_id || !guest) {
+      // Shouldn't happen — the welcome CTA guards on hasVoiceAgent — but
+      // defend against direct state mutation anyway.
+      setPageState('welcome');
+      return null;
+    }
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <div className="text-center max-w-md w-full">
-          <p className="text-3xl font-semibold text-foreground mb-2">
-            Hey {firstName}!
-          </p>
-          <p className="text-lg text-muted-foreground mb-10">
-            {questionCount <= 3
-              ? `Just ${questionCount} quick thing${questionCount !== 1 ? 's' : ''} to ask you.`
-              : `Got ${questionCount} quick questions — takes 2 min.`}
-          </p>
-
-          <div className="space-y-3">
-            {hasVoiceAgent && (
-              <button
-                onClick={startVoice}
-                className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-primary text-primary-foreground text-lg font-medium hover:bg-primary/90 transition-all active:scale-[0.98]"
-              >
-                <Mic className="h-5 w-5" />
-                Talk to me
-              </button>
-            )}
-
-            <button
-              onClick={() => setPageState('chat')}
-              className={cn(
-                'w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-lg font-medium transition-all active:scale-[0.98]',
-                hasVoiceAgent
-                  ? 'bg-muted text-foreground hover:bg-muted/80'
-                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
-              )}
-            >
-              <MessageSquare className="h-5 w-5" />
-              I'll type it
-            </button>
-          </div>
-
-          {error && (
-            <p className="mt-4 text-sm text-destructive">{error}</p>
-          )}
-        </div>
-      </div>
+      <VoiceSession
+        agentId={serverSurvey.agent_id}
+        dynamicVariables={{ guest_name: guest.name }}
+        totalQuestions={questionCount}
+        onEnded={handleVoiceEnded}
+        onSwitchToText={() => setPageState('chat')}
+      />
     );
   }
 
-  // ── Voice mode ──
+  // ── Welcome screen ──
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      {/* Centered voice UI */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4">
-        {/* Voice orb */}
-        <button
-          onClick={agentSpeaking ? undefined : endVoice}
-          className={cn(
-            'relative h-32 w-32 rounded-full flex items-center justify-center transition-all duration-500',
-            agentSpeaking
-              ? 'bg-primary/20 shadow-[0_0_60px_rgba(99,102,241,0.3)] scale-110'
-              : 'bg-primary/10 hover:bg-primary/15'
-          )}
-        >
-          {agentSpeaking && (
-            <span className="absolute inset-0 rounded-full border-2 border-primary/30 animate-pulse" />
-          )}
-          {agentSpeaking ? (
-            <Volume2 className="h-10 w-10 text-primary" />
-          ) : (
-            <Mic className="h-10 w-10 text-foreground" />
-          )}
-        </button>
-
-        <p className="mt-6 text-sm text-muted-foreground">
-          {agentSpeaking ? 'Listening to response...' : 'Listening to you...'}
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="text-center max-w-md w-full">
+        <p className="text-3xl font-semibold text-foreground mb-2">
+          Hey {firstName}!
         </p>
-      </div>
+        <p className="text-lg text-muted-foreground mb-10">
+          {questionCount <= 3
+            ? `Just ${questionCount} quick thing${questionCount !== 1 ? 's' : ''} to ask you.`
+            : `Got ${questionCount} quick questions — takes 2 min.`}
+        </p>
 
-      {/* Live transcript */}
-      {transcript.length > 0 && (
-        <div className="max-h-[40vh] overflow-y-auto px-4 pb-4">
-          <div className="mx-auto max-w-lg space-y-2">
-            {transcript.map((entry, i) => (
-              <div
-                key={i}
-                className={cn(
-                  'flex',
-                  entry.role === 'user' ? 'justify-end' : 'justify-start'
-                )}
-              >
-                <div
-                  className={cn(
-                    'max-w-[80%] rounded-2xl px-4 py-2 text-sm',
-                    entry.role === 'user'
-                      ? 'bg-primary/15 text-foreground'
-                      : 'bg-muted/50 text-foreground'
-                  )}
-                >
-                  {entry.text}
-                </div>
-              </div>
-            ))}
-            <div ref={transcriptEndRef} />
-          </div>
+        <div className="space-y-3">
+          {hasVoiceAgent && (
+            <button
+              onClick={() => {
+                setError(null);
+                setPageState('voice');
+              }}
+              className="w-full min-h-11 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-primary text-primary-foreground text-lg font-medium hover:bg-primary/90 transition-all active:scale-[0.98]"
+            >
+              <Mic className="h-5 w-5" />
+              Talk to me
+            </button>
+          )}
+
+          <button
+            onClick={() => setPageState('chat')}
+            className={cn(
+              'w-full min-h-11 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-lg font-medium transition-all active:scale-[0.98]',
+              hasVoiceAgent
+                ? 'bg-muted text-foreground hover:bg-muted/80'
+                : 'bg-primary text-primary-foreground hover:bg-primary/90'
+            )}
+          >
+            <MessageSquare className="h-5 w-5" />
+            I&apos;ll type it
+          </button>
         </div>
-      )}
 
-      {/* Bottom bar */}
-      <div className="shrink-0 border-t border-border/40 px-4 py-3 flex items-center justify-between">
-        <button
-          onClick={() => {
-            endVoice();
-            setPageState('chat');
-          }}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Switch to typing
-        </button>
-        <button
-          onClick={endVoice}
-          className="px-4 py-1.5 rounded-lg bg-muted text-sm font-medium text-foreground hover:bg-muted/80 transition-colors"
-        >
-          Done
-        </button>
+        {error && (
+          <p className="mt-4 text-sm text-destructive">{error}</p>
+        )}
       </div>
     </div>
   );
