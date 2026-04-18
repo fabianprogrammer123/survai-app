@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 /**
  * GET /api/ai/trace/[id]
  * Returns a single ai_traces row for the AI Inspector drawer.
  *
- * Access rules:
- * - Anonymous traces (survey_id IS NULL, emitted by the /test flow) are
- *   readable by anyone who holds the trace uuid. UUIDs are unguessable
- *   and these rows contain no PII beyond the creator's own prompt, so
- *   information disclosure is negligible.
- * - Survey-linked traces are readable only by the survey owner.
+ * Uses the SSR (user-authenticated) Supabase client so RLS enforces access:
+ *   - anon traces (survey_id IS NULL) are readable by anyone with the uuid
+ *   - survey-linked traces are readable only by the surveys.user_id owner
  *
- * Uses the service-role client to bypass RLS (which only exposes INSERT
- * to anon) and enforces the above rules in code.
+ * No service-role fallback: if RLS denies, we return 404 without
+ * distinguishing "not found" from "forbidden" to avoid id enumeration.
  */
 export async function GET(
   _req: NextRequest,
@@ -25,40 +22,23 @@ export async function GET(
   }
 
   try {
-    const service = createServiceClient();
-    const { data: trace, error } = await service
+    const supabase = await createClient();
+    const { data: trace, error } = await supabase
       .from('ai_traces')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
-    if (error || !trace) {
+    if (error) {
+      console.error('[api/ai/trace] query failed:', error.message);
+      return NextResponse.json({ error: 'Trace lookup failed' }, { status: 500 });
+    }
+    if (!trace) {
       return NextResponse.json({ error: 'Trace not found' }, { status: 404 });
     }
-
-    if (trace.survey_id === null) {
-      return NextResponse.json({ trace });
-    }
-
-    const authed = await createClient();
-    const { data: { user } } = await authed.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: survey } = await service
-      .from('surveys')
-      .select('user_id')
-      .eq('id', trace.survey_id)
-      .single();
-
-    if (!survey || survey.user_id !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
     return NextResponse.json({ trace });
   } catch (err) {
-    console.error('[api/ai/trace] fetch failed:', err);
+    console.error('[api/ai/trace] fetch threw:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
