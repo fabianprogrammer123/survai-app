@@ -8,9 +8,9 @@ export const ELEMENT_TYPES = [
   'nps',
   'slider',
   'matrix_single',
+  'matrix_multi',
   'likert',
   'ranking',
-  'image_choice',
   'date',
   'file_upload',
   'section_header',
@@ -106,6 +106,14 @@ export interface MatrixSingleElement extends BaseElement {
   columns: string[];
 }
 
+export interface MatrixMultiElement extends BaseElement {
+  type: 'matrix_multi';
+  /** Statement labels — one per row. */
+  rows: string[];
+  /** Option labels — one per column. Each row allows multiple selections. */
+  columns: string[];
+}
+
 export interface LikertElement extends BaseElement {
   type: 'likert';
   /** Statements respondents rate. */
@@ -118,14 +126,6 @@ export interface RankingElement extends BaseElement {
   type: 'ranking';
   /** Items the respondent drags into preference order. Must be unique labels. */
   items: string[];
-}
-
-export interface ImageChoiceElement extends BaseElement {
-  type: 'image_choice';
-  /** Each option carries a label and an optional inline base64 image. */
-  options: Array<{ label: string; imageDataUrl?: string }>;
-  /** When true, respondents can pick multiple options. */
-  multiSelect?: boolean;
 }
 
 export interface DateElement extends BaseElement {
@@ -156,9 +156,9 @@ export type SurveyElement =
   | NpsElement
   | SliderElement
   | MatrixSingleElement
+  | MatrixMultiElement
   | LikertElement
   | RankingElement
-  | ImageChoiceElement
   | DateElement
   | FileUploadElement
   | SectionHeaderElement

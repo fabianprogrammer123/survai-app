@@ -167,6 +167,22 @@ export const CATALOG: CatalogEntry[] = [
     }),
   },
   {
+    type: 'matrix_multi',
+    label: 'Matrix (multiple choice)',
+    description: 'Pick multiple options per row',
+    icon: Grid3x3,
+    category: 'choice',
+    defaultElement: () => ({
+      id: `el_${nanoid(8)}`,
+      type: 'matrix_multi' as const,
+      title: 'Which apply to each?',
+      description: '',
+      required: false,
+      rows: ['Statement 1', 'Statement 2', 'Statement 3'],
+      columns: ['Option A', 'Option B', 'Option C'],
+    }),
+  },
+  {
     type: 'likert',
     label: 'Likert Scale',
     description: 'Standard agreement scale for multiple statements',

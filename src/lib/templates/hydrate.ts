@@ -166,6 +166,13 @@ function buildElement(
         rows: d.rows ?? ['Statement 1', 'Statement 2', 'Statement 3'],
         columns: d.columns ?? ['Poor', 'Fair', 'Good', 'Excellent'],
       };
+    case 'matrix_multi':
+      return {
+        ...base,
+        type: 'matrix_multi',
+        rows: d.rows ?? ['Statement 1', 'Statement 2', 'Statement 3'],
+        columns: d.columns ?? ['Option A', 'Option B', 'Option C'],
+      };
     case 'likert':
       return {
         ...base,

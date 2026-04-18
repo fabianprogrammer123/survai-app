@@ -745,6 +745,22 @@ test.describe('/test editor — smoke', () => {
     expect(await headers.count()).toBeGreaterThanOrEqual(5);
   });
 
+  test('Matrix Multi Choice renders table with checkboxes', async ({ page }) => {
+    await page.goto('/test');
+    await page.getByText(/Blank form/i).first().click();
+    await page.getByRole('button', { name: /Google Forms/i }).first().click();
+    await page.getByRole('button', { name: /continue|create|start/i }).click();
+    await page.waitForURL(/\/test\/edit/);
+    await page.getByRole('button', { name: /Add Question/i }).click();
+    await page.getByRole('menuitem', { name: /Matrix \(multiple choice\)/i }).first().click();
+    const matrix = page.locator('[data-matrix-multi]');
+    await expect(matrix).toBeVisible();
+    // Default 3 rows × 3 columns = at least 9 checkbox cells
+    const checkboxes = matrix.locator('[data-slot="checkbox"]');
+    const count = await checkboxes.count();
+    expect(count).toBeGreaterThanOrEqual(9);
+  });
+
   test('Ranking renders draggable list', async ({ page }) => {
     await page.goto('/test');
     await page.getByText(/Blank form/i).first().click();

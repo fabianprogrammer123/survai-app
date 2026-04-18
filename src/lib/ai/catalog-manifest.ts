@@ -54,6 +54,10 @@ const typeProperties: Record<string, PropertySpec[]> = {
     { name: 'rows', type: 'string[]', required: true, description: 'Statements to evaluate (at least 1)' },
     { name: 'columns', type: 'string[]', required: true, description: 'Rating scale (at least 2)' },
   ],
+  matrix_multi: [
+    { name: 'rows', type: 'string[]', required: true, description: 'Statements (at least 1)' },
+    { name: 'columns', type: 'string[]', required: true, description: 'Options per row (at least 2); multiple may be selected per row' },
+  ],
   likert: [
     { name: 'rows', type: 'string[]', required: true, description: 'Statements to evaluate (at least 1)' },
     { name: 'scale', type: 'number', required: true, description: 'Scale size: 3, 5, or 7 points' },
@@ -76,6 +80,7 @@ const typeConstraints: Record<string, Record<string, unknown>> = {
   dropdown: { minOptions: 2 },
   linear_scale: { minRange: 1, maxRange: 10 },
   matrix_single: { minRows: 1, minColumns: 2 },
+  matrix_multi: { minRows: 1, minColumns: 2 },
   likert: { minRows: 1, scaleValues: [3, 5, 7] },
   ranking: { minItems: 2 },
 };

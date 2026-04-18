@@ -19,7 +19,6 @@ import type {
   MatrixSingleElement,
   LikertElement,
   RankingElement,
-  ImageChoiceElement,
 } from '@/types/survey';
 
 /** Element types that can be converted between (excludes layout types and hidden entries). */
@@ -58,10 +57,14 @@ function buildTypeConversion(source: SurveyElement, targetType: ElementType): Pa
     updates.unit = src.unit ?? '%';
     updates.minLabel = src.minLabel;
     updates.maxLabel = src.maxLabel;
-  } else if (targetType === 'matrix_single') {
+  } else if (targetType === 'matrix_single' || targetType === 'matrix_multi') {
     const src = source as unknown as Record<string, unknown>;
     updates.rows = (src.rows as string[]) ?? ['Statement 1', 'Statement 2', 'Statement 3'];
-    updates.columns = (src.columns as string[]) ?? ['Poor', 'Fair', 'Good', 'Excellent'];
+    updates.columns =
+      (src.columns as string[]) ??
+      (targetType === 'matrix_multi'
+        ? ['Option A', 'Option B', 'Option C']
+        : ['Poor', 'Fair', 'Good', 'Excellent']);
     updates.options = undefined;
   } else if (targetType === 'likert') {
     const src = source as unknown as Record<string, unknown>;
@@ -82,10 +85,14 @@ function buildTypeConversion(source: SurveyElement, targetType: ElementType): Pa
     updates.maxLabel = undefined;
   }
 
-  if (targetType !== 'matrix_single' && targetType !== 'likert') {
+  if (
+    targetType !== 'matrix_single' &&
+    targetType !== 'matrix_multi' &&
+    targetType !== 'likert'
+  ) {
     updates.rows = undefined;
   }
-  if (targetType !== 'matrix_single') {
+  if (targetType !== 'matrix_single' && targetType !== 'matrix_multi') {
     updates.columns = undefined;
   }
   if (targetType !== 'likert') {
@@ -505,7 +512,7 @@ export function PropertiesPanel({ className }: Props) {
         )}
 
         {/* Matrix (single/multi) config */}
-        {element.type === 'matrix_single' && (
+        {(element.type === 'matrix_single' || element.type === 'matrix_multi') && (
           <>
             <Separator />
             <div className="space-y-4">
