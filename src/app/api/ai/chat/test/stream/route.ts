@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import type Anthropic from '@anthropic-ai/sdk';
 import { aiResponseSchema } from '@/lib/ai/schema';
 import { buildSystemPrompt } from '@/lib/ai/prompts';
 import { hydrateBlueprint } from '@/lib/templates/hydrate';
@@ -55,18 +55,19 @@ export async function POST(req: NextRequest) {
         send('status', { text: 'Designing your survey...' });
 
         const anthropic = getAnthropic();
-        const response = await anthropic.messages.parse({
+        const response = await anthropic.messages.create({
           model: DEFAULT_MODEL,
           max_tokens: 16000,
-          system: systemPrompt,
+          system: systemPrompt + '\n\nReturn ONLY a JSON object matching the survey_response schema. No prose, no markdown fences.',
           messages,
-          output_config: { format: zodOutputFormat(aiResponseSchema) },
         });
 
-        const parsed = response.parsed_output;
-        const usage = response.usage;
+        const raw = response.content
+          .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+          .map((b) => b.text)
+          .join('');
 
-        // Emit trace data for admin observability
+        const usage = response.usage;
         send('trace', {
           tokenUsage: usage
             ? { input: usage.input_tokens, output: usage.output_tokens, cacheRead: usage.cache_read_input_tokens }
@@ -76,11 +77,27 @@ export async function POST(req: NextRequest) {
           systemPromptLength: systemPrompt.length,
         });
 
-        if (!parsed) {
+        const cleaned = raw
+          .replace(/^\s*```(?:json)?\s*/i, '')
+          .replace(/\s*```\s*$/i, '')
+          .trim();
+
+        let parsedRaw: unknown;
+        try {
+          parsedRaw = JSON.parse(cleaned);
+        } catch {
           send('error', { error: 'Invalid AI response format' });
           controller.close();
           return;
         }
+
+        const zodResult = aiResponseSchema.safeParse(parsedRaw);
+        if (!zodResult.success) {
+          send('error', { error: 'AI response did not match schema' });
+          controller.close();
+          return;
+        }
+        const parsed = zodResult.data;
 
         if (parsed.intent === 'clarify') {
           send('result', {

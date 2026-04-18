@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import type Anthropic from '@anthropic-ai/sdk';
 import { aiResponseSchema } from '@/lib/ai/schema';
 import { buildSystemPrompt } from '@/lib/ai/prompts';
 import { hydrateBlueprint } from '@/lib/templates/hydrate';
@@ -43,19 +43,37 @@ export async function POST(req: NextRequest) {
     ];
 
     const anthropic = getAnthropic();
-    const response = await anthropic.messages.parse({
+    const response = await anthropic.messages.create({
       model: DEFAULT_MODEL,
       max_tokens: 16000,
-      system: systemPrompt,
+      system: systemPrompt + '\n\nReturn ONLY a JSON object matching the survey_response schema. No prose, no markdown fences.',
       messages,
-      output_config: { format: zodOutputFormat(aiResponseSchema) },
     });
 
-    const parsed = response.parsed_output;
-    if (!parsed) {
-      console.error('[ai/chat/test] parse failed, stop_reason=', response.stop_reason);
+    const raw = response.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('');
+
+    const cleaned = raw
+      .replace(/^\s*```(?:json)?\s*/i, '')
+      .replace(/\s*```\s*$/i, '')
+      .trim();
+
+    let parsedRaw: unknown;
+    try {
+      parsedRaw = JSON.parse(cleaned);
+    } catch {
+      console.error('[ai/chat/test] JSON parse failed:', cleaned.slice(0, 500));
       return NextResponse.json({ error: 'Invalid AI response format' }, { status: 502 });
     }
+
+    const zodResult = aiResponseSchema.safeParse(parsedRaw);
+    if (!zodResult.success) {
+      console.error('[ai/chat/test] Zod validation failed:', zodResult.error.flatten());
+      return NextResponse.json({ error: 'AI response did not match schema' }, { status: 502 });
+    }
+    const parsed = zodResult.data;
 
     if (parsed.intent === 'clarify') {
       return NextResponse.json({
