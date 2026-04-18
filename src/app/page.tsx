@@ -1,12 +1,17 @@
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Sparkles, Zap, BarChart3 } from 'lucide-react';
+import { NetworkBackground } from '@/components/OrgFlowCanvas';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      {/* Mouse-reactive neural-constellation backdrop */}
+      <NetworkBackground />
+      {/* Content sits above the canvas */}
+      <div className="relative z-10 min-h-screen">
       {/* Nav */}
-      <nav className="border-b">
+      <nav className="border-b border-border/40 backdrop-blur-sm bg-background/50">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-4 py-3">
           <h1 className="text-xl font-bold">Survai</h1>
           <div className="flex items-center gap-3">
@@ -82,11 +87,12 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t">
+      <footer className="border-t border-border/40">
         <div className="max-w-5xl mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
           Built with AI. Powered by Survai.
         </div>
       </footer>
+      </div>
     </div>
   );
 }
