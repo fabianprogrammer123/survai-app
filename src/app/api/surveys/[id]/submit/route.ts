@@ -43,8 +43,11 @@ export async function POST(
   // Anon client; relies on RLS "Insert to published surveys" policy.
   const supabase = await createClient();
 
-  // Insert the response. RLS will reject if survey isn't published.
-  const { data: response, error: insertError } = await supabase
+  // Insert the response. NO .select() / RETURNING — anon doesn't satisfy
+  // the SELECT policy on responses (owner-only), and INSERT...RETURNING
+  // would trigger the SELECT check and fail. We just want to write.
+  // RLS still enforces the WITH CHECK on INSERT (must be a published survey).
+  const { error: insertError } = await supabase
     .from('responses')
     .insert({
       survey_id: id,
@@ -54,11 +57,9 @@ export async function POST(
         userAgent: req.headers.get('user-agent') ?? null,
         submittedAt: new Date().toISOString(),
       },
-    })
-    .select('id')
-    .single();
+    });
 
-  if (insertError || !response) {
+  if (insertError) {
     // Distinguish RLS rejection (likely not-published) from other failures
     const isRls =
       insertError?.code === '42501' ||
@@ -69,7 +70,7 @@ export async function POST(
       event: 'response.submit_failed',
       surveyId: id,
       reason: isRls ? 'rls_denied_not_published' : 'insert_failed',
-      error: insertError?.message,
+      error: insertError.message,
       durationMs: Date.now() - start,
     });
 
@@ -80,10 +81,14 @@ export async function POST(
   }
 
   // Optional guest-token branch: link this response to a pre-invited guest.
-  // Requires service-role since guests table RLS restricts writes to the owner.
+  // Requires service-role since the guests table RLS restricts writes to the
+  // survey owner. Best-effort — silently skipped if service-role isn't set.
   if (guestToken) {
     try {
       const service = createServiceClient();
+      // Find the guest first, then the response we just inserted (looking up
+      // by survey + most-recent submission). We don't have the response id
+      // since INSERT had no RETURNING (anon RLS would reject it).
       const { data: guest } = await service
         .from('guests')
         .select('id, name')
@@ -92,26 +97,34 @@ export async function POST(
         .single();
 
       if (guest) {
-        await service
-          .from('guests')
-          .update({
-            status: 'completed',
-            response_id: response.id,
-            profile: {
-              name: guest.name,
-              answers,
-              completed: true,
-              generatedAt: new Date().toISOString(),
-            },
-          })
-          .eq('id', guest.id);
+        const { data: latestResp } = await service
+          .from('responses')
+          .select('id')
+          .eq('survey_id', id)
+          .order('submitted_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (latestResp) {
+          await service
+            .from('guests')
+            .update({
+              status: 'completed',
+              response_id: latestResp.id,
+              profile: {
+                name: guest.name,
+                answers,
+                completed: true,
+                generatedAt: new Date().toISOString(),
+              },
+            })
+            .eq('id', guest.id);
+        }
       }
     } catch (e) {
-      // Guest update is best-effort. Don't fail the response submission.
       log.warn({
         event: 'response.guest_link_failed',
         surveyId: id,
-        responseId: response.id,
         error: e instanceof Error ? e.message : String(e),
       });
     }
@@ -120,10 +133,9 @@ export async function POST(
   log.info({
     event: 'response.submitted',
     surveyId: id,
-    responseId: response.id,
     hasGuestToken: !!guestToken,
     durationMs: Date.now() - start,
   });
 
-  return NextResponse.json({ success: true, responseId: response.id });
+  return NextResponse.json({ success: true });
 }

@@ -11,7 +11,9 @@
 
 create table if not exists public.surveys (
   id            uuid primary key default gen_random_uuid(),
-  user_id       uuid references auth.users(id) on delete cascade not null,
+  -- user_id defaults to auth.uid() so client inserts don't need to pass it
+  -- explicitly (and the RLS check `auth.uid() = user_id` is then automatic).
+  user_id       uuid references auth.users(id) on delete cascade not null default auth.uid(),
   title         text not null default 'Untitled Survey',
   description   text,
   schema        jsonb not null default '[]'::jsonb,
@@ -58,14 +60,28 @@ create table if not exists public.responses (
 
 alter table public.responses enable row level security;
 
+-- SECURITY DEFINER helper so the responses INSERT policy doesn't have to
+-- subquery surveys directly (which bumps into RLS recursion in some Postgres
+-- planner paths even when the survey is publicly readable).
+create or replace function public.is_survey_published(p_survey_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.surveys
+    where id = p_survey_id and published = true
+  );
+$$;
+grant execute on function public.is_survey_published(uuid) to anon, authenticated;
+
 drop policy if exists "Insert to published surveys" on public.responses;
 create policy "Insert to published surveys" on public.responses
-  for insert with check (
-    exists (
-      select 1 from public.surveys
-      where surveys.id = responses.survey_id and surveys.published = true
-    )
-  );
+  for insert
+  to public
+  with check (public.is_survey_published(survey_id));
 
 drop policy if exists "Owner reads responses" on public.responses;
 create policy "Owner reads responses" on public.responses
