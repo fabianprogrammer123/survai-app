@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { SurveyForm } from './survey-form';
 import { VoiceSession, type VoiceEndResult } from './voice-session';
+import { AnswerReadback } from './answer-readback';
 import { Mic, MessageSquare, Loader2, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SurveyElement } from '@/types/survey';
@@ -24,7 +25,14 @@ interface SurveyData {
   agent_id?: string;
 }
 
-type PageState = 'loading' | 'welcome' | 'voice' | 'chat' | 'done' | 'error';
+type PageState =
+  | 'loading'
+  | 'welcome'
+  | 'voice'
+  | 'readback'
+  | 'chat'
+  | 'done'
+  | 'error';
 
 interface GuestSurveyProps {
   surveyId: string;
@@ -36,6 +44,9 @@ export function GuestSurvey({ surveyId, token, survey: serverSurvey }: GuestSurv
   const [pageState, setPageState] = useState<PageState>('loading');
   const [guest, setGuest] = useState<GuestData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Captured when the voice session ends cleanly — needed for the
+  // read-back screen's webhook poll.
+  const [conversationId, setConversationId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/surveys/${surveyId}/guests/${token}`)
@@ -65,11 +76,6 @@ export function GuestSurvey({ surveyId, token, survey: serverSurvey }: GuestSurv
   ).length;
 
   const handleVoiceEnded = (result: VoiceEndResult) => {
-    // Guest flow: the ElevenLabs post-call webhook handles persistence +
-    // guest linking end-to-end, so reaching the end screen is sufficient
-    // for this variant. The anonymous /s/:id flow — which doesn't rely on
-    // pre-invited guests — adds a read-back/verify step on top (added in
-    // a follow-up commit).
     if (result.reason === 'mic_denied') {
       setError('We need mic access to run the voice call. Switch to typing?');
       setPageState('welcome');
@@ -85,7 +91,17 @@ export function GuestSurvey({ surveyId, token, survey: serverSurvey }: GuestSurv
       setPageState('welcome');
       return;
     }
-    setPageState('done');
+    // Clean end (user_ended). If we captured a conversationId we can poll
+    // the webhook and show the read-back. Without it — e.g. the session
+    // ended before onConnect fired — skip straight to "done"; the webhook
+    // will still land the response asynchronously and the guest-linking
+    // path picks it up server-side.
+    if (result.conversationId) {
+      setConversationId(result.conversationId);
+      setPageState('readback');
+    } else {
+      setPageState('done');
+    }
   };
 
   // ── Loading ──
@@ -150,6 +166,22 @@ export function GuestSurvey({ surveyId, token, survey: serverSurvey }: GuestSurv
           />
         </div>
       </div>
+    );
+  }
+
+  // ── Read-back mode ──
+  if (pageState === 'readback' && conversationId) {
+    return (
+      <AnswerReadback
+        survey={serverSurvey}
+        conversationId={conversationId}
+        guestToken={token}
+        onSubmitted={() => setPageState('done')}
+        onCancel={() => {
+          setConversationId(null);
+          setPageState('welcome');
+        }}
+      />
     );
   }
 
