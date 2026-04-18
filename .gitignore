@@ -48,6 +48,7 @@ next-env.d.ts
 
 # visual QA artifacts
 tests/visual/.artifacts/
+/tmp/
 
 # scheduled task runtime state
 .claude/scheduled_tasks.lock

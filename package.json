@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "visual-qa": "playwright test --reporter=list"
+    "visual-qa": "playwright test --reporter=list",
+    "smoke:voice-link": "node scripts/smoke-voice-link.mjs"
   },
   "dependencies": {
     "@a2ui-sdk/react": "^0.4.0",
