@@ -22,7 +22,7 @@ export const surveyRowSchema = z.object({
   title: z.string(),
   description: z.string().nullable(),
   schema: z.array(z.unknown()),
-  settings: z.record(z.unknown()),
+  settings: z.record(z.string(), z.unknown()),
   published: z.boolean(),
   published_at: z.string().nullable(),
   agent_id: z.string().nullable(),

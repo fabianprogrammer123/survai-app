@@ -1,6 +1,11 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { log } from '@/lib/log';
+import { assertServerEnv } from '@/lib/env';
+
+// Fail-fast on misconfigured production revisions. No-op in dev.
+// Runs at module load (= first cold start in serverless).
+assertServerEnv();
 
 /**
  * Next.js 16 proxy (formerly middleware). Two responsibilities:
