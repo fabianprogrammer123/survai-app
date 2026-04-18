@@ -60,7 +60,7 @@ function downloadCSV() {
   if (responses.length === 0) return;
 
   // Collect all answerable elements as columns
-  const columns = elements.filter((el) => el && !['section_header', 'page_break'].includes(el.type));
+  const columns = elements.filter((el) => !['section_header', 'page_break'].includes(el.type));
   const headers = ['Response ID', 'Submitted At', ...columns.map((c) => c.title || c.id)];
 
   const rows = responses.map((r) => {

@@ -75,7 +75,7 @@ export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: Pu
   const addPhoneCampaign = useSurveyStore((s) => s.addPhoneCampaign);
 
   const answerableCount = elements.filter(
-    (el) => el && !['section_header', 'page_break', 'file_upload'].includes(el.type)
+    (el) => !['section_header', 'page_break', 'file_upload'].includes(el.type)
   ).length;
 
   // Base64url-encode the current survey into a preview URL. This is the
