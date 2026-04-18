@@ -43,7 +43,17 @@ export function hydrateBlueprint(blueprint: SurveyBlueprint): HydrationResult {
   const blockMap: Record<string, string> = {};
   const errors: string[] = [];
 
+  // Defensive: tolerate nullish entries in the blocks array. zod validation
+  // normally rejects these upstream, but the streaming path has historically
+  // leaked undefined elements into the store (see
+  // memory/project_undefined_elements_rootcause) — fixing at source here means
+  // hydration never produces a sparse elements array, so downstream filters
+  // don't need `el && el.type` hotfix guards.
   for (const block of blueprint.blocks) {
+    if (!block || typeof block.blockId !== 'string') {
+      errors.push('Skipped malformed block (missing blockId)');
+      continue;
+    }
     const template = getBlockTemplate(block.blockId);
     if (!template) {
       errors.push(`Unknown block "${block.blockId}" — skipped`);

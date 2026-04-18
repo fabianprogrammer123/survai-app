@@ -295,7 +295,15 @@ async function handleStreamingResponse(
         break;
 
       case 'element': {
-        const element = data.element as SurveyElement;
+        const element = data.element as SurveyElement | null | undefined;
+        // Malformed payload — a missing/nullish element would otherwise
+        // crash on element.id below. Drop it with a trace event so the
+        // inspector surfaces the skip without losing the surrounding
+        // generation. Root-cause fix lives in hydrate.ts + store.ts.
+        if (!element || typeof element.id !== 'string' || typeof element.type !== 'string') {
+          if (traceId) appendTraceEvent(traceId, { ts: now(), type: 'error', data: { reason: 'dropped malformed element event', raw: data } });
+          break;
+        }
         store.addElement(element);
         store.addRecentlyAdded(element.id);
         if (genMeta) genMeta.allElements.push(element);

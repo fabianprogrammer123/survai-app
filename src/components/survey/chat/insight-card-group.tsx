@@ -33,7 +33,7 @@ export function InsightCardGroup({ batch }: InsightCardGroupProps) {
   }
 
   function handleTypeChange(elementId: string, newType: ElementType) {
-    const source = elements.find((el) => el && el.id === elementId);
+    const source = elements.find((el) => el.id === elementId);
     if (!source || source.type === newType) return;
     updateElement(elementId, buildTypeConversion(source, newType));
   }
@@ -58,7 +58,7 @@ export function InsightCardGroup({ batch }: InsightCardGroupProps) {
           <TooltipProvider>
             {batch.insightCards.map((card) => {
               const block = getBlockTemplate(card.blockId);
-              const liveElement = elements.find((el) => el && el.id === card.elementId);
+              const liveElement = elements.find((el) => el.id === card.elementId);
               // Prefer the live (current) type so switching via the picker
               // updates the icon without waiting for a new generation batch.
               const currentType = liveElement?.type ?? block?.elementType;
