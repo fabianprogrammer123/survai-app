@@ -6,6 +6,7 @@ import { hydrateBlueprint } from '@/lib/templates/hydrate';
 import { createClient } from '@/lib/supabase/server';
 import { getAnthropic, DEFAULT_MODEL } from '@/lib/anthropic';
 import { persistTrace } from '@/lib/ai/trace-server';
+import { preserveCanvasUiPreferences } from '@/lib/ai/settings';
 
 /**
  * POST /api/ai/chat
@@ -178,7 +179,7 @@ export async function POST(req: NextRequest) {
           label: p.label,
           description: p.description ?? undefined,
           elements: result.elements,
-          settings: result.settings,
+          settings: preserveCanvasUiPreferences(result.settings, survey.settings),
           blockMap: result.blockMap,
         };
       });
@@ -192,6 +193,7 @@ export async function POST(req: NextRequest) {
 
     if (parsed.intent === 'generate') {
       const result = hydrateBlueprint(parsed.blueprint as Parameters<typeof hydrateBlueprint>[0]);
+      const mergedSettings = preserveCanvasUiPreferences(result.settings, survey.settings);
 
       await supabase
         .from('surveys')
@@ -199,7 +201,7 @@ export async function POST(req: NextRequest) {
           title: result.title,
           description: result.description,
           schema: result.elements,
-          settings: result.settings,
+          settings: mergedSettings,
         })
         .eq('id', surveyId);
 
@@ -210,7 +212,7 @@ export async function POST(req: NextRequest) {
           title: result.title,
           description: result.description,
           elements: result.elements,
-          settings: result.settings,
+          settings: mergedSettings,
         },
         blockMap: result.blockMap,
         blueprint: parsed.blueprint,

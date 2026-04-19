@@ -6,6 +6,7 @@ import { hydrateBlueprint } from '@/lib/templates/hydrate';
 import { DEFAULT_SETTINGS, type SurveySettings } from '@/types/survey';
 import { getAnthropic, DEFAULT_MODEL } from '@/lib/anthropic';
 import { persistTrace } from '@/lib/ai/trace-server';
+import { preserveCanvasUiPreferences } from '@/lib/ai/settings';
 
 /**
  * POST /api/ai/chat/test
@@ -163,7 +164,7 @@ export async function POST(req: NextRequest) {
           label: p.label,
           description: p.description ?? undefined,
           elements: result.elements,
-          settings: result.settings,
+          settings: preserveCanvasUiPreferences(result.settings, settings),
           blockMap: result.blockMap,
         };
       });
@@ -185,7 +186,7 @@ export async function POST(req: NextRequest) {
           title: result.title,
           description: result.description,
           elements: result.elements,
-          settings: result.settings,
+          settings: preserveCanvasUiPreferences(result.settings, settings),
         },
         blockMap: result.blockMap,
         blueprint: parsed.blueprint,
