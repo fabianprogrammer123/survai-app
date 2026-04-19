@@ -52,6 +52,7 @@ export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: Pu
   const elements = useSurveyStore((s) => s.survey.elements);
   const isGenerating = useSurveyStore((s) => s.isGeneratingResponses);
   const isCreatingAgent = useSurveyStore((s) => s.isCreatingAgent);
+  const isPublished = useSurveyStore((s) => s.isPublished);
   const publishConfig = useSurveyStore((s) => s.publishConfig);
 
   const setGeneratingResponses = useSurveyStore((s) => s.setGeneratingResponses);
@@ -65,13 +66,29 @@ export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: Pu
     (el) => !['section_header', 'page_break', 'file_upload'].includes(el.type)
   ).length;
 
-  // Base64url-encode the current survey into a preview URL. This is the
-  // shippable-today share link — works cross-device without a backend.
-  // When Plan D lands, this will switch back to /s/{id} for persisted
-  // publishes, and publishConfig.publicUrl will override when set.
+  // Share-URL selection. The voice-native respondent flow lives at
+  // `/s/{id}` — it reads `agent_id` off the Supabase row and offers
+  // "Answer by voice" (ElevenLabs web session) + AnswerReadback before
+  // persisting responses. `/s/preview/<base64>` is a stateless text-only
+  // demo that never persists. We route:
+  //   - DB survey (UUID id) + published  → /s/{id}  (voice-capable)
+  //   - /test anon survey or pre-publish → /s/preview/<base64>
+  // A previously-stored live URL in publishConfig.publicUrl wins if it
+  // still looks like /s/{id} (survives dialog close/reopen).
+  const UUID_RE =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const isDbSurvey = !!survey.id && UUID_RE.test(survey.id);
+  const canUseLiveUrl = isDbSurvey && isPublished;
+
   const surveyUrl = (() => {
-    if (publishConfig.publicUrl) return publishConfig.publicUrl;
     if (typeof window === 'undefined') return '';
+    const origin = window.location.origin;
+
+    if (canUseLiveUrl) return `${origin}/s/${survey.id}`;
+
+    const stored = publishConfig.publicUrl;
+    if (stored && !stored.includes('/s/preview/')) return stored;
+
     try {
       const json = JSON.stringify(survey);
       const bytes = new TextEncoder().encode(json);
@@ -81,11 +98,13 @@ export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: Pu
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=+$/, '');
-      return `${window.location.origin}/s/preview/${b64}`;
+      return `${origin}/s/preview/${b64}`;
     } catch {
-      return `${window.location.origin}/s/${survey.id || nanoid(10)}`;
+      return `${origin}/s/${survey.id || nanoid(10)}`;
     }
   })();
+
+  const isLiveShareUrl = !surveyUrl.includes('/s/preview/') && surveyUrl !== '';
 
   // ── Create ElevenLabs Agent ──
   const createVoiceAgent = useCallback(async () => {
@@ -106,10 +125,10 @@ export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: Pu
       }
 
       const data = await res.json();
-      setPublishConfig({
-        agentId: data.agentId,
-        publicUrl: surveyUrl,
-      });
+      // Only stamp the agent id — the canonical publicUrl is decided in
+      // handlePublish after the DB persist succeeds, so we don't write
+      // the preview URL here and then overwrite it moments later.
+      setPublishConfig({ agentId: data.agentId });
       return data.agentId as string;
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to create voice agent';
@@ -118,7 +137,7 @@ export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: Pu
     } finally {
       setCreatingAgent(false);
     }
-  }, [survey, publishConfig.agentId, surveyUrl, setCreatingAgent, setPublishConfig]);
+  }, [survey, publishConfig.agentId, setCreatingAgent, setPublishConfig]);
 
   // ── Publish (optionally with AI-generated responses) ──
   async function handlePublish() {
@@ -147,25 +166,46 @@ export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: Pu
         })(),
       ]);
 
-      // Persist publish state to DB (if survey has an ID from Supabase)
-      if (survey.id) {
+      // Persist publish state to DB for authed (UUID) surveys. We send
+      // the canonical live URL — `/s/{id}` — as public_url so the DB
+      // column matches what respondents actually visit, not the legacy
+      // base64 preview link.
+      const origin =
+        typeof window !== 'undefined' ? window.location.origin : '';
+      const liveUrl = isDbSurvey ? `${origin}/s/${survey.id}` : '';
+      let dbPersisted = false;
+      if (isDbSurvey) {
         try {
-          await fetch(`/api/surveys/${survey.id}/publish`, {
+          const res = await fetch(`/api/surveys/${survey.id}/publish`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               agentId: agentId || undefined,
-              publicUrl: surveyUrl,
+              publicUrl: liveUrl,
             }),
           });
-        } catch {
-          // Non-critical: local state still updated even if DB persist fails
-          console.warn('Failed to persist publish state to DB');
+          if (res.ok) {
+            dbPersisted = true;
+          } else {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || 'Failed to persist publish state');
+          }
+        } catch (e) {
+          // Authed flow: a DB failure means the survey is NOT actually
+          // published in the DB, so we refuse to hand out a /s/{id}
+          // link that will 404. Surface the error instead of silently
+          // falling back to the preview URL (the respondent side has
+          // moved on — the preview URL is a text-only demo).
+          throw e instanceof Error
+            ? e
+            : new Error('Failed to persist publish state');
         }
       }
 
       setPublished(true);
-      setPublishConfig({ publicUrl: surveyUrl });
+      setPublishConfig({
+        publicUrl: isDbSurvey && dbPersisted ? liveUrl : surveyUrl,
+      });
       onOpenChange(false);
 
       // Only jump to Results view when there's data to look at.
@@ -423,11 +463,21 @@ export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: Pu
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Respondents can fill out the survey via web form or start a voice conversation.
+                {isLiveShareUrl
+                  ? 'Respondents can answer by voice or by typing — voice replies are transcribed, read back, and saved to this survey\u2019s results.'
+                  : 'Respondents can fill out the survey via web form or start a voice conversation.'}
               </p>
-              <p className="text-[11px] text-amber-600 dark:text-amber-400" data-preview-link-note="true">
-                Preview link: this is a shareable demo URL. Response collection requires a real backend (coming soon), so submissions won&apos;t appear in your dashboard yet.
-              </p>
+              {!isLiveShareUrl && (
+                <p
+                  className="text-[11px] text-amber-600 dark:text-amber-400"
+                  data-preview-link-note="true"
+                >
+                  Preview link: this is a shareable demo URL. Response
+                  collection requires publishing the survey from your
+                  dashboard, so submissions won&apos;t appear in your
+                  results yet.
+                </p>
+              )}
             </div>
 
             <Separator />

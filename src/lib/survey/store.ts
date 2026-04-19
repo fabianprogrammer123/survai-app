@@ -225,8 +225,9 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
       selectedElementId: null,
       elementBlockMap: {},
       // Mirror the survey's published flag into the top-level isPublished
-      // state so the Live badge, Results tab, and Re-publish button all
-      // hydrate correctly when a previously-published survey is reloaded.
+      // state so the Live badge, Results tab, Re-publish button, and the
+      // Share dialog's /s/{id} URL all hydrate correctly when a
+      // previously-published survey is reloaded.
       isPublished: Boolean(survey.published),
     }),
 
