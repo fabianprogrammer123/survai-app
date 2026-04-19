@@ -90,7 +90,15 @@ export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: Pu
     if (stored && !stored.includes('/s/preview/')) return stored;
 
     try {
-      const json = JSON.stringify(survey);
+      // Embed the agent id alongside the survey so the /s/preview route
+      // can render the voice-native AnonymousSurvey (Mic CTA → ElevenLabs
+      // web session) instead of the text-only SurveyForm. For /test
+      // surveys that never get a Supabase row, this IS the voice share
+      // path — the conversation itself is a real ElevenLabs call.
+      const json = JSON.stringify({
+        survey,
+        agentId: publishConfig.agentId || null,
+      });
       const bytes = new TextEncoder().encode(json);
       let binary = '';
       for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
@@ -104,7 +112,11 @@ export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: Pu
     }
   })();
 
+  // The share URL is voice-capable when we emit either a DB-backed
+  // /s/{id} or a /s/preview/<b64> that carries an agentId.
   const isLiveShareUrl = !surveyUrl.includes('/s/preview/') && surveyUrl !== '';
+  const isVoiceShareUrl =
+    isLiveShareUrl || (surveyUrl.includes('/s/preview/') && !!publishConfig.agentId);
 
   // ── Create ElevenLabs Agent ──
   const createVoiceAgent = useCallback(async () => {
@@ -464,18 +476,18 @@ export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: Pu
               </div>
               <p className="text-xs text-muted-foreground">
                 {isLiveShareUrl
-                  ? 'Respondents can answer by voice or by typing — voice replies are transcribed, read back, and saved to this survey\u2019s results.'
-                  : 'Respondents can fill out the survey via web form or start a voice conversation.'}
+                  ? 'Respondents answer by voice (or typing) — voice replies are transcribed, read back, and saved to this survey\u2019s results.'
+                  : isVoiceShareUrl
+                    ? 'Respondents answer by voice (or typing) through your ElevenLabs agent. This is a demo share — the conversation is live but responses aren\u2019t saved to your dashboard.'
+                    : 'Respondents can fill out the survey as a web form. Publish to enable voice answering on the shared link.'}
               </p>
-              {!isLiveShareUrl && (
+              {!isVoiceShareUrl && (
                 <p
                   className="text-[11px] text-amber-600 dark:text-amber-400"
                   data-preview-link-note="true"
                 >
-                  Preview link: this is a shareable demo URL. Response
-                  collection requires publishing the survey from your
-                  dashboard, so submissions won&apos;t appear in your
-                  results yet.
+                  Preview link: this is a shareable demo URL. Publish the
+                  survey to enable voice answering and persisted responses.
                 </p>
               )}
             </div>

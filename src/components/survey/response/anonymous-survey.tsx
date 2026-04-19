@@ -25,6 +25,15 @@ type PageState = 'welcome' | 'voice' | 'readback' | 'chat' | 'done';
 
 interface AnonymousSurveyProps {
   survey: SurveyData;
+  /**
+   * Demo mode — after the voice conversation ends, skip the answer
+   * read-back/submit step and jump straight to the "Done" screen.
+   * Used by the /s/preview share path where the survey doesn't have
+   * a Supabase row to submit against. The ElevenLabs conversation
+   * itself still happens end-to-end; transcripts live in the
+   * creator's ElevenLabs dashboard.
+   */
+  demoMode?: boolean;
 }
 
 /**
@@ -35,7 +44,7 @@ interface AnonymousSurveyProps {
  * — this keeps the browser's user-gesture window intact so the mic
  * permission prompt and audio autoplay both succeed on the first tap.
  */
-export function AnonymousSurvey({ survey }: AnonymousSurveyProps) {
+export function AnonymousSurvey({ survey, demoMode = false }: AnonymousSurveyProps) {
   const [pageState, setPageState] = useState<PageState>('welcome');
   const [error, setError] = useState<string | null>(null);
   const [savedConversationId, setSavedConversationId] = useState<string | null>(
@@ -76,13 +85,15 @@ export function AnonymousSurvey({ survey }: AnonymousSurveyProps) {
       setPageState('welcome');
       return;
     }
-    if (result.conversationId) {
+    if (result.conversationId && !demoMode) {
       setSavedConversationId(result.conversationId);
       setPageState('readback');
     } else {
+      // Demo share (no Supabase row to submit against) or an unusual
+      // end without a conversationId — just show the success screen.
       setPageState('done');
     }
-  }, []);
+  }, [demoMode]);
 
   const voice = useVoiceSession(handleVoiceEnded);
 
