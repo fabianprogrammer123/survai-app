@@ -9,15 +9,17 @@ import { log } from '@/lib/log';
  * POST /api/elevenlabs/agent
  * Create an ElevenLabs Conversational AI agent from a survey definition.
  *
- * Auth-gated: provisioning an agent costs quota.
+ * Intentionally NOT auth-gated: the /test anonymous demo surface must be
+ * able to mint an agent so the shared /s/preview link is voice-capable.
+ * Cost exposure is bounded by the proxy rate limit and ElevenLabs' own
+ * per-account quotas. When we add stricter gating we should gate by an
+ * app-specific signal (e.g. a `demoMode` flag tied to the /test origin)
+ * rather than a session cookie.
  *
  * Body: { survey: Survey, voiceId?: string }
  * Returns: { agentId: string, agent: object }
  */
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth(req);
-  if (auth instanceof Response) return auth;
-
   try {
     const { survey, voiceId } = (await req.json()) as {
       survey: Survey;

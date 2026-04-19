@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSurveyStore } from '@/lib/survey/store';
 import { Button } from '@/components/ui/button';
 import {
@@ -150,6 +150,26 @@ export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: Pu
       setCreatingAgent(false);
     }
   }, [survey, publishConfig.agentId, setCreatingAgent, setPublishConfig]);
+
+  // Auto-mint the voice agent when the user opens the Share tab. Users
+  // reach the Share tab expecting a link they can paste — they don't
+  // necessarily click Publish first. Without this the base64 payload
+  // ships with `agentId: null` and the /s/preview page falls back to
+  // the text form. Fired at most once per dialog open so a failed agent
+  // creation surfaces in the error panel instead of looping.
+  const autoMintedRef = useRef(false);
+  useEffect(() => {
+    if (!open) {
+      autoMintedRef.current = false;
+      return;
+    }
+    if (tab !== 'distribute') return;
+    if (publishConfig.agentId) return;
+    if (autoMintedRef.current) return;
+    if (answerableCount === 0) return;
+    autoMintedRef.current = true;
+    void createVoiceAgent();
+  }, [open, tab, publishConfig.agentId, answerableCount, createVoiceAgent]);
 
   // ── Publish (optionally with AI-generated responses) ──
   async function handlePublish() {
@@ -459,9 +479,15 @@ export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: Pu
                   variant="default"
                   size="sm"
                   onClick={handleCopyLink}
+                  disabled={isCreatingAgent}
                   className="shrink-0"
                 >
-                  {copied ? (
+                  {isCreatingAgent ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                      Preparing voice…
+                    </>
+                  ) : copied ? (
                     <>
                       <Check className="h-3.5 w-3.5 mr-1.5" />
                       Copied!
