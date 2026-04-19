@@ -34,15 +34,31 @@ npm install
 
 ## 3. Apply the database schema
 
-In the Supabase Dashboard → SQL Editor → New Query, paste and run the entire contents of:
+In the Supabase Dashboard → SQL Editor, run **every file in `supabase/migrations/` in filename (lexical) order**:
 
 ```
 supabase/migrations/20260417000000_base_schema.sql
+supabase/migrations/20260419000000_ai_traces.sql
+supabase/migrations/20260419000100_rls_guests_token.sql
+supabase/migrations/20260419000200_responses_idempotency.sql
 ```
 
-This is **idempotent** — safe to re-run. Creates 4 tables (`surveys`, `responses`, `chat_messages`, `guests`) with RLS, the `is_survey_published` helper function, and indexes.
+Each file is **idempotent** — safe to re-run. The base schema creates 5
+tables (`surveys`, `responses`, `chat_messages`, `guests`, `ai_traces` —
+the last one is added by the second migration) with RLS, the
+`is_survey_published` helper, and indexes. The later migrations tighten
+guests-table RLS (no anon read) and add webhook idempotency for
+`responses`.
 
-After running, verify in Dashboard → Database → Tables that all four tables show up with the green RLS shield.
+Running only the base schema leaves you missing `ai_traces` and the
+webhook idempotency index. Running it on an older deploy that had the
+insecure `"Public read by token"` policy will drop that policy — which
+is the intended state.
+
+After running, verify in Dashboard → Database → Tables that the five
+tables show up with the green RLS shield, and that
+`curl $SUPABASE_URL/rest/v1/guests?select=* -H "apikey: $ANON_KEY"`
+returns `[]` (not a row dump).
 
 ## 4. Disable email confirmation (MVP only)
 

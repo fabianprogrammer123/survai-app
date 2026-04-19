@@ -7,6 +7,15 @@
 --
 -- Idempotent: re-runnable safely (CREATE TABLE IF NOT EXISTS for tables,
 -- DROP-then-CREATE for policies/triggers).
+--
+-- Guests RLS: only the owner policy is created here. An earlier revision of
+-- this file shipped an additional `using (true)` public-read policy that
+-- let any anon-key holder enumerate every guest row (tokens, emails, etc.).
+-- That policy is now excluded inline, and `drop policy if exists` below
+-- evicts it on upgrade. The legitimate unauthenticated read path is the
+-- server route `/api/surveys/[id]/guests/[token]`, which uses the
+-- service-role client (RLS-bypass) and validates the token itself.
+-- See migration 20260419000100_rls_guests_token.sql for the full history.
 -- =============================================================================
 
 create table if not exists public.surveys (
@@ -136,9 +145,11 @@ create policy "Owner manages guests" on public.guests
     )
   );
 
+-- Intentional: no public-read policy on public.guests. The prior
+-- "Public read by token" policy was `using (true)` — an enumeration hole.
+-- This drop is kept for idempotency on databases that applied the earlier
+-- revision of this file.
 drop policy if exists "Public read by token" on public.guests;
-create policy "Public read by token" on public.guests
-  for select using (true);
 
 create index if not exists idx_surveys_user_id on public.surveys(user_id);
 create index if not exists idx_surveys_agent_id on public.surveys(agent_id) where agent_id is not null;
