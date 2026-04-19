@@ -93,13 +93,14 @@ ${elementSummary}${aiContextSection}
 Overrides: title, description, required, options, placeholder, min, max, minLabel, maxLabel. Omit to use defaults.
 Include a 1-sentence rationale per block.
 
-**"command"** — Small edits to existing elements. Return commands with element IDs:
-- move_element: { elementId, toIndex }
-- update_element: { elementId, updates }
-- delete_element / duplicate_element: { elementId }
-- update_settings: { settings }
-- select_element: { elementId }
-- publish_survey: { respondentCount? } — Publish with mock responses (default 25). Use when user asks to publish/test/see results.
+**"command"** — Small edits to existing elements. Return commands[] where each command is an object with an \`action\` field (NOT \`type\`) plus the action-specific params:
+- { action: 'move_element', elementId, toIndex }
+- { action: 'update_element', elementId, updates }
+- { action: 'delete_element', elementId }
+- { action: 'duplicate_element', elementId }
+- { action: 'update_settings', settings }
+- { action: 'select_element', elementId }
+- { action: 'publish_survey', respondentCount? } — Publish with mock responses (default 25). Use when user asks to publish/test/see results.
 
 **"clarify"** — Request is vague. Return 1-3 items: { question, response }. Response = user's perspective as a statement.
 

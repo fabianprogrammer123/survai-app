@@ -199,14 +199,26 @@ export function useAiChat(options?: UseAiChatOptions) {
         clearTimeout(timeout);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Something went wrong';
-        appendTraceEvent(traceId, { ts: now(), type: 'error', data: { error: errorMsg } });
+        const code = (error as Error & { code?: string })?.code;
+        appendTraceEvent(traceId, { ts: now(), type: 'error', data: { error: errorMsg, code } });
         updateTrace(traceId, { hasError: true });
+
+        // Schema / JSON-shape failures: the AI answered but in the wrong shape.
+        // Surface an actionable message with a Retry that replays the last
+        // user turn instead of the default "Something went wrong: ..." string.
+        const isShapeFailure =
+          code === 'ai_response_schema_mismatch' || code === 'ai_response_invalid_json';
+        const content = isShapeFailure
+          ? "The agent's reply didn't land. Want me to retry, or can you say more specifically what to change?"
+          : `Something went wrong: ${errorMsg}`;
+
         useSurveyStore.getState().addChatMessage({
           id: nanoid(),
           role: 'assistant',
-          content: `Something went wrong: ${errorMsg}`,
+          content,
           timestamp: new Date().toISOString(),
           isError: true,
+          retryText: isShapeFailure ? text : undefined,
         });
       } finally {
         updateTrace(traceId, { durationMs: Math.round(now() - traceStart) });
@@ -425,7 +437,9 @@ async function handleStandardResponse(
 
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({ error: `Request failed (${res.status})` }));
-    throw new Error(errBody.error || `Request failed (${res.status})`);
+    const err = new Error(errBody.error || `Request failed (${res.status})`) as Error & { code?: string };
+    if (typeof errBody.code === 'string') err.code = errBody.code;
+    throw err;
   }
 
   const data = await res.json();

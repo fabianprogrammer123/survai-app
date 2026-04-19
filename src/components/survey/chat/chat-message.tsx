@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { useSurveyStore } from '@/lib/survey/store';
 import { InsightCardGroup } from './insight-card-group';
 import { ProposalCard } from './proposal-card';
-import { Mic, HelpCircle, Info } from 'lucide-react';
+import { Mic, HelpCircle, Info, RotateCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ChatMessage as ChatMessageType, GenerationBatch, Proposal, ClarifyingQuestion } from '@/types/survey';
 
@@ -96,6 +96,24 @@ export function ChatMessage({ message, batch, onSuggestionClick, onProposalSelec
             </div>
           )}
         </div>
+
+        {/* Retry button on shape-failure errors */}
+        {!isUser && message.isError && message.retryText && (
+          <div className="flex flex-wrap gap-1.5 px-1">
+            <button
+              onClick={() => onSuggestionClick?.(message.retryText!)}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs',
+                'bg-destructive/10 text-destructive border border-destructive/30',
+                'hover:bg-destructive/20 hover:border-destructive/40 transition-colors',
+                'cursor-pointer'
+              )}
+            >
+              <RotateCw className="h-3 w-3 shrink-0" />
+              <span>Retry</span>
+            </button>
+          </div>
+        )}
 
         {/* Clarifying questions as clickable chips */}
         {hasClarifyingQuestions && (

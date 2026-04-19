@@ -281,6 +281,12 @@ export interface ChatMessage {
   isError?: boolean;
   /** AI trace row id — opens the AI Inspector drawer when clicked. */
   traceId?: string;
+  /**
+   * Original user text that triggered an error turn. When present on an
+   * error message, the chat renders a "Retry" button that re-sends this
+   * text as the next user turn.
+   */
+  retryText?: string;
 }
 
 export interface Proposal {

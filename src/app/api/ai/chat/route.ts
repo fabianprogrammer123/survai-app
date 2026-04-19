@@ -75,56 +75,69 @@ export async function POST(req: NextRequest) {
     ];
 
     const anthropic = getAnthropic();
-    const response = await anthropic.messages.create({
-      model,
-      max_tokens: 16000,
-      ...(temperature !== undefined ? { temperature } : {}),
-      system: systemPrompt + '\n\nReturn ONLY a JSON object matching the survey_response schema. No prose, no markdown fences.',
-      messages,
-    });
 
-    traceModel = response.model;
-    traceInputTokens = response.usage?.input_tokens ?? null;
-    traceOutputTokens = response.usage?.output_tokens ?? null;
-
-    const raw = response.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('');
-    traceRaw = raw;
-
-    const cleaned = raw
-      .replace(/^\s*```(?:json)?\s*/i, '')
-      .replace(/\s*```\s*$/i, '')
-      .trim();
-
-    let parsedRaw: unknown;
-    try {
-      parsedRaw = JSON.parse(cleaned);
-    } catch {
-      traceIntent = 'error';
-      traceError = 'JSON parse failed';
-      console.error('[ai/chat] JSON parse failed:', cleaned.slice(0, 500));
-      const tid = await persistTrace({
-        surveyId: surveyIdForTrace,
-        userMessage: userMessageForTrace,
-        systemPrompt: traceSystemPrompt,
-        durationMs: Date.now() - start,
-        intent: traceIntent,
-        model: traceModel,
-        inputTokens: traceInputTokens,
-        outputTokens: traceOutputTokens,
-        rawResponse: traceRaw,
-        error: traceError,
+    // Call the model, parse JSON, and safeParse against aiResponseSchema. On
+    // schema (or JSON) failure we retry once with a nudge appended to the
+    // conversation — rare shape drift shouldn't dead-end the user. 400–500ms
+    // of extra latency on the failure path is a good trade.
+    async function callModelAndParse(extraMessages: typeof messages) {
+      const response = await anthropic.messages.create({
+        model,
+        max_tokens: 16000,
+        ...(temperature !== undefined ? { temperature } : {}),
+        system: systemPrompt + '\n\nReturn ONLY a JSON object matching the survey_response schema. No prose, no markdown fences.',
+        messages: extraMessages,
       });
-      return NextResponse.json({ error: 'Invalid AI response format', traceId: tid }, { status: 502 });
+      const rawText = response.content
+        .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+        .map((b) => b.text)
+        .join('');
+      const cleanedText = rawText
+        .replace(/^\s*```(?:json)?\s*/i, '')
+        .replace(/\s*```\s*$/i, '')
+        .trim();
+      let parsedJson: unknown;
+      let jsonError: string | null = null;
+      try {
+        parsedJson = JSON.parse(cleanedText);
+      } catch {
+        jsonError = 'JSON parse failed';
+      }
+      const zod = jsonError ? null : aiResponseSchema.safeParse(parsedJson);
+      return { response, rawText, parsedJson, jsonError, zod };
     }
 
-    const zodResult = aiResponseSchema.safeParse(parsedRaw);
-    if (!zodResult.success) {
+    let attempt = await callModelAndParse(messages);
+    traceModel = attempt.response.model;
+    traceInputTokens = attempt.response.usage?.input_tokens ?? null;
+    traceOutputTokens = attempt.response.usage?.output_tokens ?? null;
+    traceRaw = attempt.rawText;
+
+    const firstTryFailed = attempt.jsonError || !attempt.zod?.success;
+    if (firstTryFailed) {
+      console.warn('[ai/chat] first-attempt parse failed, retrying with nudge', {
+        jsonError: attempt.jsonError,
+        zodError: attempt.zod?.success === false ? attempt.zod.error.flatten() : null,
+      });
+      const nudge =
+        "Your previous reply didn't match the required JSON shape. Emit a single JSON object matching the survey_response schema. For command turns, each item in commands[] must use the field name `action` (not `type`) and pick from the documented action values. No prose, no markdown fences.";
+      const retryMessages = [
+        ...messages,
+        { role: 'assistant' as const, content: attempt.rawText },
+        { role: 'user' as const, content: nudge },
+      ];
+      attempt = await callModelAndParse(retryMessages);
+      // Prefer retry token usage/model/raw for the trace so the inspector
+      // reflects the response actually returned to the user.
+      traceModel = attempt.response.model;
+      traceInputTokens = (traceInputTokens ?? 0) + (attempt.response.usage?.input_tokens ?? 0);
+      traceOutputTokens = (traceOutputTokens ?? 0) + (attempt.response.usage?.output_tokens ?? 0);
+      traceRaw = attempt.rawText;
+    }
+
+    if (attempt.jsonError) {
       traceIntent = 'error';
-      traceError = 'Zod validation failed';
-      console.error('[ai/chat] Zod validation failed:', zodResult.error.flatten());
+      traceError = 'JSON parse failed (after retry)';
       const tid = await persistTrace({
         surveyId: surveyIdForTrace,
         userMessage: userMessageForTrace,
@@ -137,7 +150,33 @@ export async function POST(req: NextRequest) {
         rawResponse: traceRaw,
         error: traceError,
       });
-      return NextResponse.json({ error: 'AI response did not match schema', traceId: tid }, { status: 502 });
+      return NextResponse.json(
+        { error: 'Invalid AI response format', code: 'ai_response_invalid_json', traceId: tid },
+        { status: 502 }
+      );
+    }
+
+    const zodResult = attempt.zod!;
+    if (!zodResult.success) {
+      traceIntent = 'error';
+      traceError = 'Zod validation failed (after retry)';
+      console.error('[ai/chat] Zod validation failed after retry:', zodResult.error.flatten());
+      const tid = await persistTrace({
+        surveyId: surveyIdForTrace,
+        userMessage: userMessageForTrace,
+        systemPrompt: traceSystemPrompt,
+        durationMs: Date.now() - start,
+        intent: traceIntent,
+        model: traceModel,
+        inputTokens: traceInputTokens,
+        outputTokens: traceOutputTokens,
+        rawResponse: traceRaw,
+        error: traceError,
+      });
+      return NextResponse.json(
+        { error: 'AI response did not match schema', code: 'ai_response_schema_mismatch', traceId: tid },
+        { status: 502 }
+      );
     }
     const parsed = zodResult.data;
     traceIntent = parsed.intent;

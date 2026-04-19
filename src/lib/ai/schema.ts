@@ -112,7 +112,21 @@ const elementUpdatesSchema = z.object({
   backgroundColor: z.string().nullable().optional().describe('Hex background color'),
 });
 
-export const uiCommandSchema = z.object({
+// Models occasionally emit `{ type: 'delete_element', ... }` instead of the
+// `{ action: ... }` we spec in the prompt. Normalise the alias before the
+// object is validated so a coin-flip guess doesn't blow up an entire turn.
+// The alias only kicks in when `action` is absent, so a typo'd action value
+// still fails the enum and gets caught upstream.
+export const uiCommandSchema = z.preprocess((val) => {
+  if (val && typeof val === 'object' && !Array.isArray(val)) {
+    const obj = val as Record<string, unknown>;
+    if ('type' in obj && !('action' in obj)) {
+      const { type, ...rest } = obj;
+      return { action: type, ...rest };
+    }
+  }
+  return val;
+}, z.object({
   action: z.enum([
     'move_element',
     'update_element',
@@ -133,7 +147,7 @@ export const uiCommandSchema = z.object({
     .nullable()
     .optional()
     .describe('Settings for update_settings'),
-});
+}));
 
 export type UiCommand = z.infer<typeof uiCommandSchema>;
 
