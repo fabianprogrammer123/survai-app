@@ -256,24 +256,12 @@ export interface SurveyResponseData {
 
 // ── Publishing & Distribution ──
 
-export type DistributionChannel = 'link' | 'email' | 'sms' | 'phone' | 'qr' | 'embed';
-
-export interface PhoneCampaign {
-  id: string;
-  batchId: string;         // ElevenLabs batch call ID
-  name: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
-  recipientCount: number;
-  completedCount: number;
-  createdAt: string;
-}
+export type DistributionChannel = 'link' | 'email' | 'sms';
 
 export interface PublishConfig {
-  agentId?: string;          // ElevenLabs agent ID for voice/phone
-  phoneNumberId?: string;    // ElevenLabs phone number ID
+  agentId?: string;          // ElevenLabs agent ID for the web voice flow
   publicUrl?: string;        // Public survey URL
   distributionChannels: DistributionChannel[];
-  phoneCampaigns: PhoneCampaign[];
 }
 
 export interface ClarifyingQuestion {

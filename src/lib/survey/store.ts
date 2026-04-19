@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Survey, SurveyElement, SurveySettings, ChatMessage, GenerationBatch, SurveyResponseData, PublishConfig, PhoneCampaign, DEFAULT_SETTINGS } from '@/types/survey';
+import { Survey, SurveyElement, SurveySettings, ChatMessage, GenerationBatch, SurveyResponseData, PublishConfig, DEFAULT_SETTINGS } from '@/types/survey';
 import type { A2UIMessage } from '@a2ui-sdk/types/0.8';
 import { nanoid } from 'nanoid';
 import { arrayMove } from '@dnd-kit/sortable';
@@ -155,8 +155,6 @@ interface SurveyEditorState {
   // Publishing & Distribution
   setPublishConfig: (config: Partial<PublishConfig>) => void;
   setCreatingAgent: (loading: boolean) => void;
-  addPhoneCampaign: (campaign: PhoneCampaign) => void;
-  updatePhoneCampaign: (id: string, updates: Partial<PhoneCampaign>) => void;
 
   // Voice Interview
   setActiveConversationId: (id: string | null) => void;
@@ -209,7 +207,6 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
   // Publishing & Distribution
   publishConfig: {
     distributionChannels: ['link'],
-    phoneCampaigns: [],
   },
   isCreatingAgent: false,
 
@@ -227,6 +224,10 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
       isDirty: false,
       selectedElementId: null,
       elementBlockMap: {},
+      // Mirror the survey's published flag into the top-level isPublished
+      // state so the Live badge, Results tab, and Re-publish button all
+      // hydrate correctly when a previously-published survey is reloaded.
+      isPublished: Boolean(survey.published),
     }),
 
   setTitle: (title) =>
@@ -426,22 +427,6 @@ export const useSurveyStore = create<SurveyEditorState>((set, get) => ({
       publishConfig: { ...state.publishConfig, ...config },
     })),
   setCreatingAgent: (loading) => set({ isCreatingAgent: loading }),
-  addPhoneCampaign: (campaign) =>
-    set((state) => ({
-      publishConfig: {
-        ...state.publishConfig,
-        phoneCampaigns: [...state.publishConfig.phoneCampaigns, campaign],
-      },
-    })),
-  updatePhoneCampaign: (id, updates) =>
-    set((state) => ({
-      publishConfig: {
-        ...state.publishConfig,
-        phoneCampaigns: state.publishConfig.phoneCampaigns.map((c) =>
-          c.id === id ? { ...c, ...updates } : c
-        ),
-      },
-    })),
 
   // Voice Interview
   setActiveConversationId: (id) => set({ activeConversationId: id }),
