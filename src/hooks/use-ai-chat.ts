@@ -154,6 +154,10 @@ export function useAiChat(options?: UseAiChatOptions) {
         }));
 
         const requestBody = JSON.stringify({
+          // surveyId is consumed by the authenticated /api/ai/chat route; the
+          // anonymous /test route ignores it. currentSurvey is the other way
+          // around. Sending both means the same hook serves both endpoints.
+          surveyId: store.survey.id,
           message: text,
           history,
           currentSurvey: {

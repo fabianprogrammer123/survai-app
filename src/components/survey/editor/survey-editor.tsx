@@ -33,7 +33,10 @@ export function SurveyEditor({ initialSurvey }: SurveyEditorProps) {
       <div className="flex flex-1 overflow-hidden">
         <BlockPalette className="w-[200px] border-r shrink-0 bg-background" />
         <EditorCanvas className="flex-1 min-w-0" />
-        <RightPanel className="w-[400px] border-l shrink-0 bg-background" />
+        <RightPanel
+          className="w-[400px] border-l shrink-0 bg-background"
+          aiEndpoint="/api/ai/chat"
+        />
       </div>
     </div>
   );

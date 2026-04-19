@@ -15,7 +15,7 @@ Who can call what, with what auth:
 
 | Surface | Caller | Gate |
 | --- | --- | --- |
-| `/` landing, `/test*`, `/admin*` | anyone | public; no data leaves Supabase |
+| `/` landing, `/test*` | anyone | public; no data leaves Supabase |
 | `/s/:id`, `/s/:id?t=:token` | respondent | guest token validated server-side; anon reads of `guests` blocked at RLS |
 | `/dashboard`, `/survey/:id/*` | creator | Supabase session; `src/proxy.ts` redirects anon to `/login` |
 | `/api/surveys/*` (owner tools) | creator | route handler checks ownership against `auth.uid()` |

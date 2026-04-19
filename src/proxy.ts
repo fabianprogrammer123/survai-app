@@ -21,7 +21,7 @@ assertServerEnv();
  *      get bounced to /login?next=<original-path>.
  *
  * Public paths (no gating, but still session-refreshed):
- *   - /, /test, /admin (in-product try-before-signup surfaces)
+ *   - /, /test (in-product try-before-signup surface)
  *   - /s/* (respondent surface — must work for anon)
  *   - /login, /signup, /auth/* (auth surfaces)
  *   - /api/ai/* (AI proxy routes — handle their own auth)
@@ -32,7 +32,6 @@ assertServerEnv();
 
 const PUBLIC_PREFIXES = [
   '/test',
-  '/admin',
   '/s/',
   '/login',
   '/signup',
