@@ -23,7 +23,8 @@ Who can call what, with what auth:
 | `/api/surveys/:id/guests/:token` | anon respondent | token lookup via service-role client; wrong token → 404 |
 | `/api/ai/chat/*` | anon (`/test` demo) | anon allowed, rate-limited, no server-side data mutation |
 | `/api/ai/responses`, `/api/ai/image` | creator | `requireAuth()` — 401 for anon |
-| `/api/elevenlabs/agent`, `/batch`, `/call`, `/tts` | creator | `requireAuth()` — 401 for anon |
+| `/api/elevenlabs/agent` POST | anon | rate-limited (default 100/hr/IP); deliberately ungated so `/test` share-link voice works. PATCH/DELETE are `requireAuth()` |
+| `/api/elevenlabs/batch`, `/call`, `/tts` | creator | `requireAuth()` — 401 for anon |
 | `/api/elevenlabs/signed-url` | anon respondent | anon allowed; scoped 15-min URL for a specific `agentId` |
 | `/api/webhooks/elevenlabs` | ElevenLabs | HMAC-SHA256 verification with 30-minute replay window |
 | `/api/health` | Cloud Run probe | anon, rate-limit bypass |
