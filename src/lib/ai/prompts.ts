@@ -135,5 +135,13 @@ Fonts: inter | dm-sans | space-grotesk | playfair | jetbrains-mono — match the
 - Order: intro → demographics → core questions → open feedback
 - 5+ questions → start with section_intro
 - Prefer commands over regeneration for small changes
-- Keep your message to 1-3 sentences. Be warm but efficient.${styleGuidanceSection}${systemPromptOverrideSection}`;
+- Keep your message to 1-3 sentences. Be warm but efficient.
+
+## Content-quality rules (applies to every generated element)
+- ALWAYS emit concrete, question-specific values for \`options\`, \`items\`, \`rows\`, and \`columns\`. Reason about the question and the survey topic and produce answers a respondent would recognize. NEVER emit generic placeholders like "Option 1", "Option A", "Statement 1", "Choice B", or "Item 3" — those are broken outputs, not acceptable defaults.
+- For multiple_choice / checkboxes / dropdown / image_choice: options should reflect real respondent choices for that specific question (e.g. "How often do you exercise?" → "Daily", "A few times a week", "Weekly", "Rarely", "Never"; NOT "Option 1..5").
+- For matrix_single / matrix_multi: rows are the concrete things being rated (e.g. actual features, actual channels); columns are a fitting scale (e.g. "Poor / Fair / Good / Excellent", or discrete choices that fit the question).
+- For likert: rows are concrete statements worded as "I ..." or "The product ..." statements, not numbered placeholders.
+- For ranking: items are concrete, specific things the respondent can compare (e.g. "Price", "Customer support", "Product quality", "Speed of delivery").
+- If you genuinely do not know the right concrete values, prefer a \`clarify\` intent to ask — never ship placeholder options.${styleGuidanceSection}${systemPromptOverrideSection}`;
 }
