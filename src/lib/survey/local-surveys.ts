@@ -26,6 +26,9 @@ export interface SurveyMeta {
 const INDEX_KEY = 'survai-surveys-index';
 const SURVEY_PREFIX = 'survai-survey-';
 const LEGACY_KEY = 'survai-test-survey';
+const PENDING_PUBLISH_KEY = 'survai-pending-publish';
+const CLAIMED_PREFIX = 'survai-claimed-';
+const PENDING_PUBLISH_TTL_MS = 24 * 60 * 60 * 1000;
 
 // ── Index CRUD ─────────────────────────────────────────────
 
@@ -217,6 +220,114 @@ export function migrateLegacySurvey(): void {
     localStorage.removeItem(LEGACY_KEY);
   } catch {
     // Silently fail migration
+  }
+}
+
+// ── Pending-publish stash ──────────────────────────────────
+//
+// A tiny one-slot store used by the anonymous publish flow. When an
+// unauthenticated user hits "Publish" on a /test/edit draft, we stash
+// the intent here, bounce through login, and the /claim-draft page
+// picks it back up to migrate the draft into a DB-backed survey.
+//
+// Shape is intentionally small: it describes WHAT to do after login,
+// not the draft itself (that still lives under SURVEY_PREFIX + id).
+// TTL is 24h so a user who closes their laptop and comes back the
+// next afternoon still gets the same redirect; anything older points
+// at a draft they've likely forgotten about.
+
+export interface PendingPublish {
+  /** Id of the localStorage draft to claim and publish. */
+  localSurveyId: string;
+  /** respondentCount, only meaningful if generateResponses is true. */
+  count: number;
+  generateResponses: boolean;
+  /** ms epoch — compared against Date.now() for TTL. */
+  createdAt: number;
+}
+
+function isValidPendingPublish(p: unknown): p is PendingPublish {
+  if (typeof p !== 'object' || p === null) return false;
+  const v = p as Partial<PendingPublish>;
+  return (
+    typeof v.localSurveyId === 'string' &&
+    typeof v.count === 'number' &&
+    typeof v.generateResponses === 'boolean' &&
+    typeof v.createdAt === 'number'
+  );
+}
+
+export function setPendingPublish(payload: PendingPublish): void {
+  try {
+    localStorage.setItem(PENDING_PUBLISH_KEY, JSON.stringify(payload));
+  } catch {
+    // Storage unavailable or quota exceeded. The caller can detect
+    // this via hasPendingPublish() returning false after a set.
+  }
+}
+
+/**
+ * Read, delete, and return the pending-publish payload. Returns null
+ * when there is nothing to claim, the stash is stale, or the stored
+ * JSON is corrupt. Stale / corrupt entries are removed as a side
+ * effect so the next call starts from a clean slate.
+ */
+export function consumePendingPublish(): PendingPublish | null {
+  try {
+    const raw = localStorage.getItem(PENDING_PUBLISH_KEY);
+    if (!raw) return null;
+    localStorage.removeItem(PENDING_PUBLISH_KEY);
+    const parsed: unknown = JSON.parse(raw);
+    if (!isValidPendingPublish(parsed)) return null;
+    if (Date.now() - parsed.createdAt > PENDING_PUBLISH_TTL_MS) return null;
+    return parsed;
+  } catch {
+    try {
+      localStorage.removeItem(PENDING_PUBLISH_KEY);
+    } catch {
+      /* ignore */
+    }
+    return null;
+  }
+}
+
+export function hasPendingPublish(): boolean {
+  try {
+    const raw = localStorage.getItem(PENDING_PUBLISH_KEY);
+    if (!raw) return false;
+    const parsed: unknown = JSON.parse(raw);
+    if (!isValidPendingPublish(parsed)) {
+      localStorage.removeItem(PENDING_PUBLISH_KEY);
+      return false;
+    }
+    if (Date.now() - parsed.createdAt > PENDING_PUBLISH_TTL_MS) {
+      localStorage.removeItem(PENDING_PUBLISH_KEY);
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Move a local draft to the `claimed:` prefix after a successful
+ * server-side migration. The copy is retained for 24h as a safety net
+ * — if the user navigates back and the DB survey failed to load for
+ * any reason, a future recovery path could restore from here. The
+ * index entry is removed so the /test dashboard no longer lists it.
+ */
+export function markDraftClaimed(localSurveyId: string): void {
+  try {
+    const blobKey = SURVEY_PREFIX + localSurveyId;
+    const raw = localStorage.getItem(blobKey);
+    if (raw) {
+      localStorage.setItem(CLAIMED_PREFIX + localSurveyId, raw);
+      localStorage.removeItem(blobKey);
+    }
+    removeMeta(localSurveyId);
+  } catch {
+    // Best-effort cleanup; claim already succeeded on the server.
   }
 }
 
