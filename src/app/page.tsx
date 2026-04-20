@@ -18,8 +18,8 @@ export default function LandingPage() {
             <Link href="/login">
               <Button variant="ghost">Sign In</Button>
             </Link>
-            <Link href="/signup">
-              <Button>Get Started</Button>
+            <Link href="/test/edit">
+              <Button>Start Building</Button>
             </Link>
           </div>
         </div>
@@ -37,7 +37,7 @@ export default function LandingPage() {
           shareable surveys in seconds. Drag, drop, and customize with ease.
         </p>
         <div className="flex items-center justify-center gap-4">
-          <Link href="/signup">
+          <Link href="/test/edit">
             <Button size="lg" className="text-base px-8">
               Start Building
             </Button>

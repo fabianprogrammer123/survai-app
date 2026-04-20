@@ -9,7 +9,11 @@ import { RightPanel } from '@/components/survey/editor/right-panel';
 import { EditorHeader } from '@/components/survey/editor/editor-header';
 import { Button } from '@/components/ui/button';
 import { DEFAULT_SETTINGS, type Survey } from '@/types/survey';
-import { getSurvey, saveSurvey } from '@/lib/survey/local-surveys';
+import {
+  getSurvey,
+  saveSurvey,
+  createSurveyFromTemplate,
+} from '@/lib/survey/local-surveys';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -48,10 +52,17 @@ function EditorContent() {
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const savedTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load survey on mount
+  // Load survey on mount. No id in the URL = the visitor hit
+  // /test/edit directly (e.g. from the landing "Start Building"
+  // CTA), so mint a fresh blank draft and replace the URL so refresh
+  // / back don't mint a second one. A present-but-missing id still
+  // shows "Survey not found" — that path is reached by deep links to
+  // a draft the user has since deleted, where silent re-creation
+  // would be surprising.
   useEffect(() => {
     if (!surveyId) {
-      setNotFound(true);
+      const fresh = createSurveyFromTemplate('blank');
+      router.replace(`/test/edit?id=${fresh.id}`);
       return;
     }
 
@@ -67,7 +78,7 @@ function EditorContent() {
       .then((r) => r.json())
       .then((data) => setApiKeyMissing(!data.openaiConfigured))
       .catch(() => {});
-  }, [surveyId, setSurvey]);
+  }, [surveyId, setSurvey, router]);
 
   // Auto-save to localStorage (debounced 1s)
   useEffect(() => {
