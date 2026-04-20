@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSurveyStore } from '@/lib/survey/store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,13 +11,47 @@ import { PublishDialog } from './publish-dialog';
 import Link from 'next/link';
 
 export function EditorToolbar() {
-  const surveyId = useSurveyStore((s) => s.survey.id);
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const title = useSurveyStore((s) => s.survey.title);
   const isDirty = useSurveyStore((s) => s.isDirty);
   const isPublished = useSurveyStore((s) => s.isPublished);
   const editorMode = useSurveyStore((s) => s.editorMode);
   const setEditorMode = useSurveyStore((s) => s.setEditorMode);
   const [publishOpen, setPublishOpen] = useState(false);
+
+  // /claim-draft hands off publish intent via query params. Read them
+  // once on mount, open the Publish dialog with the same options the
+  // user picked pre-login, and strip the params so a refresh doesn't
+  // re-fire publish.
+  const claimHandoffRef = useRef<{
+    autoFire: boolean;
+    count: number;
+    generateResponses: boolean;
+  } | null>(null);
+
+  if (claimHandoffRef.current === null && searchParams.get('autopublish') === '1') {
+    claimHandoffRef.current = {
+      autoFire: true,
+      count: Number(searchParams.get('count')) || 25,
+      generateResponses: searchParams.get('gen') === '1',
+    };
+  }
+
+  useEffect(() => {
+    if (!claimHandoffRef.current?.autoFire) return;
+    setPublishOpen(true);
+    // Strip the autopublish params so a refresh doesn't reopen the
+    // dialog and fire a second publish.
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete('autopublish');
+    next.delete('count');
+    next.delete('gen');
+    const suffix = next.toString();
+    router.replace(window.location.pathname + (suffix ? `?${suffix}` : ''));
+    // One-shot; no deps needed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isPreview = editorMode === 'preview';
 
@@ -79,7 +114,13 @@ export function EditorToolbar() {
         </div>
       </div>
 
-      <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} />
+      <PublishDialog
+        open={publishOpen}
+        onOpenChange={setPublishOpen}
+        autoFire={claimHandoffRef.current?.autoFire ?? false}
+        initialCount={claimHandoffRef.current?.count}
+        initialGenerateResponses={claimHandoffRef.current?.generateResponses}
+      />
     </>
   );
 }

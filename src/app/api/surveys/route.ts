@@ -43,8 +43,11 @@ export async function POST(req: NextRequest) {
       user_id: user.id,
       title: parsed.data.title ?? 'Untitled Survey',
       description: parsed.data.description ?? '',
-      schema: [],
-      settings: DEFAULT_SETTINGS,
+      // /claim-draft sends the full draft payload so the new row is
+      // immediately publishable; the dashboard's "New Survey" button
+      // posts no schema/settings and gets the defaults.
+      schema: parsed.data.schema ?? [],
+      settings: parsed.data.settings ?? DEFAULT_SETTINGS,
     })
     .select()
     .single();

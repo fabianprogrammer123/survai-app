@@ -1,12 +1,18 @@
 import { z } from 'zod';
 
 /**
- * POST /api/surveys — request body. Both fields optional; defaults applied
- * server-side. The dashboard "New Survey" button posts an empty body.
+ * POST /api/surveys — request body. All fields optional; defaults
+ * applied server-side. The dashboard "New Survey" button posts an
+ * empty body; the /claim-draft flow posts title+description+schema+
+ * settings to migrate a localStorage draft in one insert.
  */
 export const createSurveyRequestSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().max(2000).optional(),
+  /** Full element list from the local draft. Shape is validated by the store. */
+  schema: z.array(z.unknown()).optional(),
+  /** Survey settings from the local draft. */
+  settings: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type CreateSurveyRequest = z.infer<typeof createSurveyRequestSchema>;

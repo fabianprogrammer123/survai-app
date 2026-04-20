@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSurveyStore } from '@/lib/survey/store';
+import { createClient } from '@/lib/supabase/client';
+import { setPendingPublish } from '@/lib/survey/local-surveys';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -33,12 +36,35 @@ interface PublishDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialTab?: PublishTab;
+  /**
+   * Pre-fill the respondentCount and generateResponses toggles. Used
+   * by the /claim-draft → editor autopublish handoff so the options
+   * the user picked before logging in survive across the login hop.
+   */
+  initialCount?: number;
+  initialGenerateResponses?: boolean;
+  /**
+   * When true, the dialog opens and fires handlePublish() once all
+   * preconditions are satisfied (answerable count > 0, not already
+   * generating, not already creating the voice agent). Used by the
+   * autopublish handoff — the user already committed to publishing
+   * when they clicked the button pre-login.
+   */
+  autoFire?: boolean;
 }
 
-export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: PublishDialogProps) {
+export function PublishDialog({
+  open,
+  onOpenChange,
+  initialTab = 'publish',
+  initialCount = 25,
+  initialGenerateResponses = false,
+  autoFire = false,
+}: PublishDialogProps) {
+  const router = useRouter();
   const [tab, setTab] = useState<PublishTab>(initialTab);
-  const [count, setCount] = useState<number>(25);
-  const [generateResponses, setGenerateResponses] = useState<boolean>(false);
+  const [count, setCount] = useState<number>(initialCount);
+  const [generateResponses, setGenerateResponses] = useState<boolean>(initialGenerateResponses);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -172,7 +198,34 @@ export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: Pu
   }, [open, tab, publishConfig.agentId, answerableCount, createVoiceAgent]);
 
   // ── Publish (optionally with AI-generated responses) ──
+  //
+  // `publishRef` is a small indirection so the autoFire effect can
+  // call the latest handlePublish without listing every closed-over
+  // dependency in its dep array.
+  const publishRef = useRef<() => Promise<void>>(async () => {});
+
   async function handlePublish() {
+    // Pre-flight gate: publishing a /test-style localStorage draft
+    // requires an account. Unauth callers get their intent stashed
+    // and bounced through /login → /claim-draft, which migrates the
+    // draft into a DB survey and resumes publishing on the other
+    // side. Signed-in callers on a non-DB draft go straight to
+    // /claim-draft — same migration, no login step.
+    if (!isDbSurvey) {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getSession();
+      const stash = {
+        localSurveyId: survey.id,
+        count,
+        generateResponses,
+        createdAt: Date.now(),
+      };
+      setPendingPublish(stash);
+      onOpenChange(false);
+      router.push(data.session ? '/claim-draft' : '/login?next=/claim-draft');
+      return;
+    }
+
     setGeneratingResponses(true);
     setError(null);
     try {
@@ -270,6 +323,29 @@ export function PublishDialog({ open, onOpenChange, initialTab = 'publish' }: Pu
       setGeneratingResponses(false);
     }
   }
+
+  // Keep the ref pointed at the latest handlePublish so the autoFire
+  // effect can invoke it without having to list every closed-over
+  // piece of state in its dep array.
+  publishRef.current = handlePublish;
+
+  // autoFire: the /claim-draft → editor handoff passes autoFire=true
+  // so the dialog opens and publishes itself once the survey is in a
+  // publishable state. Fires at most once per dialog open; resets on
+  // close so a manual Publish still works on re-open.
+  const autoFiredRef = useRef(false);
+  useEffect(() => {
+    if (!open) {
+      autoFiredRef.current = false;
+      return;
+    }
+    if (!autoFire) return;
+    if (autoFiredRef.current) return;
+    if (isGenerating || isCreatingAgent) return;
+    if (answerableCount === 0) return;
+    autoFiredRef.current = true;
+    void publishRef.current();
+  }, [open, autoFire, isGenerating, isCreatingAgent, answerableCount]);
 
   // ── Copy Link ──
   function handleCopyLink() {

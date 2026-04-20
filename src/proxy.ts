@@ -41,7 +41,7 @@ const PUBLIC_PREFIXES = [
   '/api/elevenlabs',
 ];
 
-const PROTECTED_PREFIXES = ['/dashboard', '/survey/'];
+const PROTECTED_PREFIXES = ['/dashboard', '/survey/', '/claim-draft'];
 
 function isProtected(path: string) {
   return PROTECTED_PREFIXES.some((p) => path === p || path.startsWith(p));
